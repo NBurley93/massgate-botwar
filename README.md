@@ -91,6 +91,15 @@ an optional `botwar_hook.ini` in the game folder; the program refuses to start
 if this cannot be installed. With the hook installed, no hosts file entries
 are needed.
 
+It also locks both programs down: they can look up only Massgate's names, IP
+addresses, `localhost`, this computer and the names in `[network] allow=`, so
+nothing reaches the domains of the original service or its patch mirrors,
+whose owners are unknown today. They can open only `http(s)` links to the hosts
+in `[network] openurls=` (default `github.com`) and files in the game folder;
+the Massgate banner opens `[network] bannerurl=` (default this repository).
+`share/www-root/patches/wic/latest.txt` lists no patches, since the launcher
+would download and run them.
+
 In the game (Steam build 1.0.1.1) it also accepts a CD key of either product:
 with Soviet Assault installed, the game otherwise asks for the key every time
 multiplayer is entered if the stored key is a plain World in Conflict key.
@@ -193,6 +202,22 @@ and start a server like this:
 cd share\www-root
 python -m SimpleHTTPServer 80
 ```
+
+`start-local.ps1` runs Python's `http.server` this way and logs every request,
+with its status (e.g. 404), to `runtime/www/requests.log`.
+
+What the game fetches from it:
+
+- `texts/gettext.php?type=...&lang=...`: the launcher's and Massgate's news
+  and welcome text. The original script served `texts/<lang>/<type>.txt`; here
+  it is a static file (the per-language files are the 2015 shutdown notice).
+  It must be UTF-16 with a byte order mark, like those files: the game reads
+  plain ASCII as UTF-16 and shows it as Chinese-looking characters.
+- `massgatebutton/button_image_<lang>.tga` and `button_url_<lang>.txt`: the
+  Massgate banner in the main menu and the launcher (956x100, 32-bit TGA; the
+  launcher shows it squashed) and a link for it. Clicking the banner opens
+  Massgate's banner link, which the hook sends to `[network] bannerurl=`.
+- `patches/wic/latest.txt`: the patch list, empty on purpose.
 
 ### Running a Dedicated Game Server
 

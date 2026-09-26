@@ -153,6 +153,20 @@ in `MatchStatsPerPlayer` and `MatchStatsPerRole`.
    only). The CD key prompt: see "wic.exe" under key facts. Code patches wait for
    decryption: `GetCommandLineA` is hooked, and the patches are applied on its first call
    where all original bytes match (the C runtime startup of the decrypted game).
+12. **Network lockdown and web content** (2026-09-26, verified in-game): `redirect.cpp` now
+   resolves only Massgate names (to local), IP literals, localhost, the computer's own names
+   and `[network] allow=`; everything else fails (logged "Blocked looking up"). It also hooks
+   `ShellExecuteA` (both exes): opens only http(s) links to `[network] openurls=` hosts
+   (default github.com) and existing files in the game folder; the Massgate banner link
+   (`www.massgate.net/from_ingame/redirect_banner.php`) opens `[network] bannerurl=`
+   (default the repo). Other massgate.net links (profile, clan, "visit massgate.net") are
+   refused. Web server: `start-local.ps1` logs requests to `runtime/www/requests.log` and
+   skips starting when the port is taken. `patches/wic/latest.txt` emptied (it listed patch
+   exes on redirect.multiplay.co.uk, static3.cdn.ubi.com, ngz-server.de,
+   killercreation.co.uk; the launcher looked up multiplay even with no matching entry, and
+   WinMain ShellExecutes downloaded patches). `texts/gettext.php` re-encoded to UTF-16LE
+   with BOM (as ASCII the launcher showed it as CJK mojibake). New
+   `massgatebutton/button_image_{V0,EN}.tga` (user's 956x100 banner) and `button_url_*.txt`.
 
 ## Key facts discovered
 
@@ -288,7 +302,10 @@ in `MatchStatsPerPlayer` and `MatchStatsPerRole`.
    new career. Cabal's real match rows and the real bot rows were kept.
 7. Unexplained: before the key swap the game reported a different key sequence
    than the one the server's validator computes for the registry key.
-8. Later: one-click launcher (Phase 1), x64 port (inline `__asm` in MCommon2), SQLite
+8. Cosmetic: the launcher shows the Massgate banner squashed (its slot has another shape;
+   size unknown, could be read from the running launcher). The game also fetches
+   `from_ingame/redirect_banner.php` from the web server (404), probably an image; unused.
+9. Later: one-click launcher (Phase 1), x64 port (inline `__asm` in MCommon2), SQLite
    (after regression tests exist), Release builds without PDBs (consider RelWithDebInfo).
 
 ## Working agreements with the user

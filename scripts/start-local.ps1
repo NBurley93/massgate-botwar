@@ -29,8 +29,16 @@ if (Test-MariaDbAlive $Bin $DbPort) {
 }
 
 $WwwRoot = Join-Path $RepoRoot 'share/www-root'
-Start-Process -FilePath python -ArgumentList '-m', 'http.server', $WebPort, '--bind', '127.0.0.1', '--directory', "`"$WwwRoot`"" -WindowStyle Minimized
-Write-Host "Web server starting on 127.0.0.1:$WebPort."
+if (Get-NetTCPConnection -LocalPort $WebPort -State Listen -ErrorAction SilentlyContinue) {
+	Write-Host "Web server already running on $WebPort."
+} else {
+	# Every request (and its status, e.g. 404) goes to runtime/www/requests.log, not the window.
+	$WwwLogDir = Join-Path $RepoRoot 'runtime/www'
+	New-Item -ItemType Directory -Force $WwwLogDir | Out-Null
+	Start-Process -FilePath python -ArgumentList '-u', '-m', 'http.server', $WebPort, '--bind', '127.0.0.1', '--directory', "`"$WwwRoot`"" `
+		-WindowStyle Minimized -RedirectStandardError (Join-Path $WwwLogDir 'requests.log') -RedirectStandardOutput (Join-Path $WwwLogDir 'output.log')
+	Write-Host "Web server starting on 127.0.0.1:$WebPort (requests logged to runtime/www/requests.log)."
+}
 
 $Exe = Join-Path $RepoRoot "build/bin/$Configuration/MMassgateServers.exe"
 if (-not (Test-Path $Exe)) { throw "$Exe not found; build it first (see README)." }
