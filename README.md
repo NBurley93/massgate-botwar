@@ -217,6 +217,9 @@ What the game fetches from it:
   Massgate banner in the main menu and the launcher (956x100, 32-bit TGA; the
   launcher shows it squashed) and a link for it. Clicking the banner opens
   Massgate's banner link, which the hook sends to `[network] bannerurl=`.
+  `tools/banner/make_banner.py` draws the banner (Cold War flags over a strip
+  of a 2006 World in Conflict wallpaper, (c) Massive Entertainment AB) and
+  writes these files; see the script for fonts and options.
 - `patches/wic/latest.txt`: the patch list, empty on purpose.
 
 ### Running a Dedicated Game Server

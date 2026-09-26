@@ -166,7 +166,13 @@ in `MatchStatsPerPlayer` and `MatchStatsPerRole`.
    killercreation.co.uk; the launcher looked up multiplay even with no matching entry, and
    WinMain ShellExecutes downloaded patches). `texts/gettext.php` re-encoded to UTF-16LE
    with BOM (as ASCII the launcher showed it as CJK mojibake). New
-   `massgatebutton/button_image_{V0,EN}.tga` (user's 956x100 banner) and `button_url_*.txt`.
+   `massgatebutton/button_image_{V0,EN}.tga` and `button_url_*.txt`. The banner is drawn by
+   `tools/banner/make_banner.py`: procedural battle-damaged US and Soviet flags fading into
+   each other over `wic_wallpaper_strip.png` (rows 344-456 of an official 2006 WiC wallpaper;
+   the user chose to publish it knowingly), massgate.org's palette (orange #ff7f00, grey
+   #b8cacc, teal-black #00171a, panel #324747), Orbitron Black + Share Tech Mono (SIL OFL,
+   read from the user's installed fonts, not committed). `--no-background` = flags only.
+   The TGA must be fully opaque (Pillow writes overlay alpha into RGBA images).
 
 ## Key facts discovered
 

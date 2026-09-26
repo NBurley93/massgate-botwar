@@ -10,3 +10,4 @@ runtime
 mp_fix_massgateorg
 *_FakeDedicatedServer.*
 third_party
+__pycache__
