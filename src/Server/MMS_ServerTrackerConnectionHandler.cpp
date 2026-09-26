@@ -613,6 +613,8 @@ MMS_ServerTrackerConnectionHandler::PrivHandleGameFinished(
 						Acquaintance acq;
 						const unsigned int profileA = fullInfo.myPlayers[a].myProfileId;
 						const unsigned int profileB = fullInfo.myPlayers[b].myProfileId;
+						if (profileA == 0 || profileB == 0)
+							continue; // bots have no profile
 						acq.lowerProfileId = __min(profileA, profileB);
 						acq.higherProfileId = __max(profileA, profileB);
 						acq.numTimesPlayed = 0;
@@ -764,8 +766,26 @@ MMS_ServerTrackerConnectionHandler::PrivHandleReportPlayerStats(MN_ReadMessage& 
 		}
 	}
 
-	MMS_PlayerStats* playerStats = MMS_PlayerStats::GetInstance(); 
-	bool good = true; 
+	// Bots have no profile. A (patched) server that allows bots in ranked games reports them
+	// as a single entry with profileId 0; drop it so it neither fails the whole message
+	// (UpdatePlayerStats rejects profile 0) nor ends up in the match logs.
+	unsigned int numPlayerStats = 0;
+	for(unsigned int i = 0; i < numStatsInMessage; i++)
+	{
+		if(statsInfos[i].profileId == 0)
+			continue;
+		if(numPlayerStats != i)
+			statsInfos[numPlayerStats] = statsInfos[i];
+		numPlayerStats++;
+	}
+	if(numPlayerStats != numStatsInMessage)
+		LOG_INFO("Ignoring %u bot stats entries from server %s.", numStatsInMessage - numPlayerStats, thePeer->myPeerIpNumber);
+	numStatsInMessage = numPlayerStats;
+	if(numStatsInMessage == 0)
+		return true;
+
+	MMS_PlayerStats* playerStats = MMS_PlayerStats::GetInstance();
+	bool good = true;
 
 	for(unsigned int i = 0; good && i < numStatsInMessage; i++)
 	{
