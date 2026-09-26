@@ -80,8 +80,31 @@ matches. Edit the file (friends' names welcome) and restart Massgate to add
 or retire ghosts; `.\scripts\reset-ghosts.ps1` removes them all so they are
 created afresh. Use `start-local.ps1 -NoGhosts` to run without them.
 
-The game and dedicated server still need the host name redirects described
-below.
+#### Ranked Matches Against Bots
+
+`hook/` builds a `dbghelp.dll` for the game folder (LGPL-3.0, partly ported
+from [wic-client](https://github.com/Nukem9/wic-client)). It forwards the real
+dbghelp functions to the Windows copy and, in `wic_ds.exe` 1.0.1.1 only:
+
+- resolves `*.massgate.net` (and `massive.se`, `ubisoft.com`) to 127.0.0.1, or
+  to the `host` in `[massgate]` of an optional `botwar_hook.ini` next to
+  `wic_ds.exe`; the server refuses to start if this cannot be installed;
+- keeps bots in ranked matches (the stock server turns them off) and reports
+  the match anyway (it drops the whole report if a bot took part); Massgate
+  ignores the bots' stats entry;
+- applies wic-client's Commander AI crash fixes.
+
+```
+.\scripts\install-hook.ps1              # backs up the game's dbghelp.dll
+.\scripts\install-hook.ps1 -Uninstall   # restores it
+```
+
+Then enable bots in `wic_ds.ini` alongside `RankedFlag`, e.g. `[BotMode]`
+`1` (fill both teams evenly). The hook logs to `botwar_hook.log` in the game
+folder.
+
+The game (and a dedicated server without the hook) still needs the host name
+redirects described below.
 
 The manual steps follow.
 

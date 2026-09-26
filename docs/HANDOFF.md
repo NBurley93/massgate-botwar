@@ -17,14 +17,14 @@ players**.
 | 0: prove the stack | **Done.** Builds with VS2022, runs on MariaDB 13. The game creates an account and logs in; `wic_ds.exe` registers as a **ranked** server; the game shows it and joins. |
 | Bot research | **Done.** Bots are built into `wic_ds.exe`. Ranked play blocks them in two places (addresses below). |
 | Massgate side of ranked bots | **Done.** Bot stats entries (profile 0) are ignored instead of disconnecting the server. |
-| 3a: ghost ladder (stage 1) | **Done.** 154+ ghosts from a callsign file, seeded careers, simulation on every reported match. |
-| 2: dedicated-server hook | **Next.** Fork `Nukem9/wic-client`, point its redirect at 127.0.0.1, add the two ranked-bot patches. |
-| 3b: bots named from the callsign pool (stage 2) | After the hook exists. |
+| 3a: ghost ladder (stage 1) | **Done.** 294 ghosts from a callsign file, seeded careers, simulation on every reported match. Verified in-game (profiles, medals). |
+| 2a: dedicated-server hook | **Done, verified in-game 2026-09-26.** `hook/` → `dbghelp.dll`: Massgate redirect, both ranked-bot patches, wic-client's AI fixes. A ranked match with bots finished and reported the human's stats; Massgate skipped the bots' entry. |
+| 2b: client hook | Open. `wic.exe` is SteamStub-wrapped (`.bind` section); the game still uses the hosts file. |
+| 3b: bots named from the callsign pool (stage 2) | **Next.** |
 | 3c: bots *are* ghosts (stage 3, stretch) | Give bot slots ghost profile IDs so real bot performance updates ghosts. |
 | 1 / 4: one-click launcher, x64, SQLite | Deferred (SQLite only after there's a baseline to test against). |
 
-Nothing has yet been tested **in-game** for the ghost ladder (ladder view, profiles).
-It was verified through the database and with the fake dedicated server.
+The ladder list itself has not been looked at in-game with the longest (22-char) ghost names.
 
 ## Environment (this machine)
 
@@ -33,7 +33,7 @@ It was verified through the database and with the fake dedicated server.
   `World in Conflict` (gitignored) → `C:\Games\Steam\steamapps\common\World in Conflict`.
 - Toolchain: VS 2022 Community (MSVC 14.44), CMake 4.4 and Python 3.13 via scoop.
   MariaDB server 13.0.2 via scoop.
-- Hosts file (the user added these; needed until the Phase 2 hook exists):
+- Hosts file (the user added these; the game still needs them, the DS with the hook does not):
   ```
   127.0.0.1 liveaccount.massgate.net
   127.0.0.1 liveaccountbackup.massgate.net
@@ -43,7 +43,12 @@ It was verified through the database and with the fake dedicated server.
   Without them these names resolve to a live Ubisoft AWS redirect; never run the game or
   DS against real DNS.
 - `wic_ds.ini` in the game folder was edited by the user: `ReportToMassgate 1`,
-  `RankedFlag 1`, `UseCDKey yes`, `GameName "Test Server!!"`. Backup: `wic_ds_backup.ini`.
+  `RankedFlag 1`, `UseCDKey yes`, `GameName "Test Server!!"`; `BotMode 1` (set 2026-09-26,
+  auto-even: 4 per team, difficulty 1). Backup: `wic_ds_backup.ini`.
+- **Hook installed** in the game folder (`scripts/install-hook.ps1`); the game's own
+  `dbghelp.dll` is `dbghelp.dll.botwar-backup` (`install-hook.ps1 -Uninstall` restores it).
+  The DS writes `botwar_hook.log` there; its own logs are in
+  `Documents\World in Conflict\Debug\wic_ds_*` (slot-file errors there are pre-existing).
 - **CD key:** HKCU now holds the repo's *sample* key (sequence 1; the user imported
   `share/sql/install_cdkey.reg`). The user's own key is preserved only in
   `CdKeys`, encoded (`MMassgateServers -dbname live -getkey <encoded>`
@@ -96,7 +101,20 @@ Run it from a scratch directory: it writes log files into its working directory.
 6. **Bot stats**: `PrivHandleReportPlayerStats` drops `profileId == 0` entries before
    processing. `GAME_FINISHED` acquaintance pairs skip profile 0. Plus `tools/FakeDedicatedServer`.
 7. **Ghost ladder**: `src/Server/MMS_GhostLadder.{h,cpp}`, `share/sql/ghosts.sql`,
-   `share/ghosts/callsigns.txt`, `scripts/reset-ghosts.ps1`, README section.
+   `share/ghosts/callsigns.txt`, `scripts/reset-ghosts.ps1`, README section. Callsigns
+   may be 3-22 chars and contain `'`.
+8. **DS hook** (`hook/`, LGPL-3.0, own CMake target `BotwarHook`, built to
+   `build/bin/<cfg>/hook/dbghelp.dll` so Massgate, which imports dbghelp, never loads it;
+   static CRT; no Detours). `hook.cpp`: DllMain, log, byte patches that verify the original
+   bytes, 5-byte `jmp` function replacement, IAT hook by resolved address.
+   `dbghelp_forward.cpp`: 96 naked export stubs (`dbghelp_exports.inc`) that push an index
+   and jump to a thunk, which loads `System32\dbghelp.dll` by full path on first use (a
+   linker forwarder would resolve back to the proxy). `wic_ds.cpp`: only in `wic_ds.exe`,
+   `gethostbyname` IAT hook redirecting `massgate.net`/`massive.se`/`ubisoft.com` to
+   127.0.0.1 (or `[massgate] host=` in `botwar_hook.ini`; the process is terminated if the
+   hook fails), and, only with the 1.0.1.1 build string, the two ranked-bot patches, the 8
+   `EX_CAI_Type` shooter getters (bounds-checked) and 28 assertion "ignore always" flags.
+   `scripts/install-hook.ps1 [-Uninstall]`.
 
 ## Key facts discovered
 
@@ -188,14 +206,20 @@ Run it from a scratch directory: it writes log files into its working directory.
    (30 chars) is still skipped, and `Bearcat` is listed twice (deduplicated). Not yet
    checked specifically: how the longest names (e.g. "Bill Nye the High Guy",
    "Classified_Information") render in the ladder list.
-2. **Phase 2 hook**: fork wic-client → minimal `dbghelp.dll` proxy + DS hook with the build
-   check, a DNS redirect to 127.0.0.1 (makes the hosts file unnecessary), the two
-   ranked-bot patches, and their AI assert fixes. Decide what to do with their CD-key
-   protocol change (probably drop it). Then a client hook for the redirect only.
-3. **In-game test of ranked + bots**: `RankedFlag 1` + `BotMode 1`, and check a finished
-   match writes stats. Open questions: do bots count toward MinPlayers for match start?
-   What does the `GAME_FINISHED` player list contain for bots? (Massgate handles profile
-   0 either way.)
+2. ~~DS hook~~ **Done** (see "What changed" 8). wic-client (cloned, gitignored, into
+   `third_party/wic-client`) turned out to have no CD-key protocol change in its DS hook.
+   **Client hook still open**: the game needs only the redirect, but `wic.exe` is
+   SteamStub-wrapped (`.bind` section, entry point inside it), so IAT/code patches in
+   DllMain may run before the stub unpacks. Options: hook `ws2_32!gethostbyname` itself
+   (inline), or defer to the unpacked entry point. The proxy already loads into `wic.exe`
+   as a pass-through.
+3. ~~In-game test of ranked + bots~~ **Done 2026-09-26**: with `RankedFlag 1` + `BotMode 1`
+   the bots joined a ranked match (so they count for the start), the match finished and
+   was reported: the human's `PlayerStats`, `BestOfLadder` (score ×1.5 for the win),
+   `MatchStatsPerPlayer`/`PerRole` were written; Massgate logged "Ignoring 1 bot stats
+   entries" (all bots collapse into one profile-0 entry) and kept the DS connected; all
+   ghosts were advanced. `MatchStats` is empty (was before too). Bot difficulty values
+   still unverified.
 4. **Stage 2**: rename bots from the callsign pool (hook after AI player creation, before
    the player list is sent to clients), e.g. "Kowalski (Armor)".
 5. **Stage 3 (stretch)**: set a ghost's profile ID on its bot so bot stats update that
