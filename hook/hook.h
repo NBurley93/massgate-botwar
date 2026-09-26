@@ -20,6 +20,9 @@ bool PatchBytes(uintptr_t anAddress, std::initializer_list<uint8_t> anOriginal, 
 // Replaces the whole function at anAddress with aTarget (a 5-byte jmp) if it starts with aPrologue.
 bool ReplaceFunction(uintptr_t anAddress, const void* aTarget, std::initializer_list<uint8_t> aPrologue, const char* aName);
 
+// Points the call instruction at anAddress (E8 rel32) at aTarget if it currently calls anOriginalTarget.
+bool RedirectCall(uintptr_t anAddress, uintptr_t anOriginalTarget, const void* aTarget, const char* aName);
+
 // Points aModule's import of anExport (from aDll) at aTarget. Returns the address it pointed at
 // before, or NULL if the import was not found.
 void* HookImport(HMODULE aModule, const char* aDll, const char* anExport, const void* aTarget);
@@ -27,3 +30,7 @@ void* HookImport(HMODULE aModule, const char* aDll, const char* anExport, const 
 // Runs in DllMain when the process is wic_ds.exe. Returns false if a patch that keeps the server
 // away from the public Massgate DNS names failed.
 bool PatchDedicatedServer(const char* anExeDirectory);
+
+// Names the server's bots after callsigns from the file given in botwar_hook.ini. Only for the
+// 1.0.1.1 build.
+bool InstallBotNames(const char* anIniPath);

@@ -38,15 +38,12 @@ namespace
 		return ourGetHostByName(aName);
 	}
 
-	bool InstallMassgateRedirect(const char* anExeDirectory)
+	bool InstallMassgateRedirect(const char* anIniPath)
 	{
-		// botwar_hook.ini next to wic_ds.exe can point the server at another machine:
+		// botwar_hook.ini can point the server at another machine:
 		//   [massgate]
 		//   host=192.168.1.10
-		char iniPath[MAX_PATH];
-		strcpy_s(iniPath, anExeDirectory);
-		strcat_s(iniPath, "\\botwar_hook.ini");
-		GetPrivateProfileStringA("massgate", "host", "127.0.0.1", ourMassgateHost, sizeof(ourMassgateHost), iniPath);
+		GetPrivateProfileStringA("massgate", "host", "127.0.0.1", ourMassgateHost, sizeof(ourMassgateHost), anIniPath);
 
 		ourGetHostByName = reinterpret_cast<GetHostByNameFunc>(HookImport(GetModuleHandleA(NULL), "WS2_32.dll", "gethostbyname", &RedirectedGetHostByName));
 		if (!ourGetHostByName)
@@ -170,8 +167,13 @@ bool PatchDedicatedServer(const char* anExeDirectory)
 	const bool knownBuild = imageStart == 0x00400000 && BUILD_STRING_ADDRESS + sizeof(BUILD_STRING) <= imageEnd
 		&& memcmp(reinterpret_cast<const void*>(BUILD_STRING_ADDRESS), BUILD_STRING, sizeof(BUILD_STRING)) == 0;
 
+	// Settings live in botwar_hook.ini next to wic_ds.exe.
+	char iniPath[MAX_PATH];
+	strcpy_s(iniPath, anExeDirectory);
+	strcat_s(iniPath, "\\botwar_hook.ini");
+
 	// The redirect does not depend on the build, so it is installed either way.
-	if (!InstallMassgateRedirect(anExeDirectory))
+	if (!InstallMassgateRedirect(iniPath))
 		return false;
 
 	if (!knownBuild)
@@ -184,5 +186,6 @@ bool PatchDedicatedServer(const char* anExeDirectory)
 	const bool getters = ReplaceShooterGetters();
 	const bool assertions = IgnoreAssertions();
 	HookLog("Ranked bots: %s. Commander AI fixes: %s.", bots ? "enabled" : "FAILED", getters && assertions ? "applied" : "partly FAILED");
+	InstallBotNames(iniPath);
 	return true;
 }

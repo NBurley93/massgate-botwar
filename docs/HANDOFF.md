@@ -20,7 +20,7 @@ players**.
 | 3a: ghost ladder (stage 1) | **Done.** 294 ghosts from a callsign file, seeded careers, simulation on every reported match. Verified in-game (profiles, medals). |
 | 2a: dedicated-server hook | **Done, verified in-game 2026-09-26.** `hook/` → `dbghelp.dll`: Massgate redirect, both ranked-bot patches, wic-client's AI fixes. A ranked match with bots finished and reported the human's stats; Massgate skipped the bots' entry. |
 | 2b: client hook | Open. `wic.exe` is SteamStub-wrapped (`.bind` section); the game still uses the hosts file. |
-| 3b: bots named from the callsign pool (stage 2) | **Next.** |
+| 3b: bots named from the callsign pool (stage 2) | **Done, verified in-game 2026-09-26.** Bots carry random ghost callsigns in the lobby and in the match. |
 | 3c: bots *are* ghosts (stage 3, stretch) | Give bot slots ghost profile IDs so real bot performance updates ghosts. |
 | 1 / 4: one-click launcher, x64, SQLite | Deferred (SQLite only after there's a baseline to test against). |
 
@@ -115,6 +115,16 @@ Run it from a scratch directory: it writes log files into its working directory.
    hook fails), and, only with the 1.0.1.1 build string, the two ranked-bot patches, the 8
    `EX_CAI_Type` shooter getters (bounds-checked) and 28 assertion "ignore always" flags.
    `scripts/install-hook.ps1 [-Uninstall]`.
+9. **Bot names** (`hook/bot_names.cpp`): `EX_AIPlayerContainer::CreatePlayer` (0x68C8A0)
+   names a bot after its AI definition's `Advanced.myUIName` ("Computer: Balanced Armor",
+   cut to 24 chars) and calls the `EXCO_PlayerInfo` setup 0x45C110 (`__thiscall`, 8 args:
+   team, name as `MC_Str<wchar_t>` by value (callee frees it), AI config file, type,
+   ready, role, voip ID, admin) at 0x68CA99. The hook redirects that one call, runs the
+   original, then assigns a callsign with the game's `MC_Str<wchar_t>::operator=` (0x403800)
+   on `+0x238`. Callsigns come from `[bots] callsigns=` in `botwar_hook.ini` (the install
+   script sets it to `share/ghosts/callsigns.txt`), same rules as the ghost ladder; no two
+   bots share one (tracked per player-info slot). 0x45C110 has 5 other callers (human
+   paths); they don't reset bot names.
 
 ## Key facts discovered
 
@@ -220,8 +230,9 @@ Run it from a scratch directory: it writes log files into its working directory.
    entries" (all bots collapse into one profile-0 entry) and kept the DS connected; all
    ghosts were advanced. `MatchStats` is empty (was before too). Bot difficulty values
    still unverified.
-4. **Stage 2**: rename bots from the callsign pool (hook after AI player creation, before
-   the player list is sent to clients), e.g. "Kowalski (Armor)".
+4. ~~Stage 2~~ **Done**: bots are named from the callsign pool (see "What changed" 9). Names
+   are the bare callsign so they match ladder ghosts; a bot callsign may still match a name
+   the ladder skipped (taken by a real player).
 5. **Stage 3 (stretch)**: set a ghost's profile ID on its bot so bot stats update that
    ghost. Risk: the DS may then treat bots as Massgate players (auth, invites, kicks).
 6. Cleanup: remove test profile StatsTest (900001) and the one junk profile-0 row in

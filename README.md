@@ -92,7 +92,11 @@ dbghelp functions to the Windows copy and, in `wic_ds.exe` 1.0.1.1 only:
 - keeps bots in ranked matches (the stock server turns them off) and reports
   the match anyway (it drops the whole report if a bot took part); Massgate
   ignores the bots' stats entry;
-- applies wic-client's Commander AI crash fixes.
+- applies wic-client's Commander AI crash fixes;
+- names bots after random callsigns from the ghost ladder's pool, so you play
+  against the names on the ladder (`[bots]` `callsigns=` in
+  `botwar_hook.ini`, which `install-hook.ps1` points at
+  `share/ghosts/callsigns.txt`; without it bots keep their AI names).
 
 ```
 .\scripts\install-hook.ps1              # backs up the game's dbghelp.dll

@@ -95,6 +95,28 @@ bool ReplaceFunction(uintptr_t anAddress, const void* aTarget, std::initializer_
 	return true;
 }
 
+bool RedirectCall(uintptr_t anAddress, uintptr_t anOriginalTarget, const void* aTarget, const char* aName)
+{
+	const uint8_t* call = reinterpret_cast<const uint8_t*>(anAddress);
+	int32_t offset;
+	memcpy(&offset, call + 1, sizeof(offset));
+	if (call[0] != 0xE8 || anAddress + 5 + offset != anOriginalTarget)
+	{
+		char found[64];
+		FormatBytes(found, sizeof(found), call, 5);
+		HookLog("%s: unexpected instruction at 0x%08X (%s), not redirected.", aName, static_cast<unsigned int>(anAddress), found);
+		return false;
+	}
+
+	const int32_t newOffset = static_cast<int32_t>(reinterpret_cast<uintptr_t>(aTarget) - (anAddress + 5));
+	if (!WriteMemory(anAddress + 1, reinterpret_cast<const uint8_t*>(&newOffset), sizeof(newOffset)))
+	{
+		HookLog("%s: could not write to 0x%08X.", aName, static_cast<unsigned int>(anAddress));
+		return false;
+	}
+	return true;
+}
+
 void* HookImport(HMODULE aModule, const char* aDll, const char* anExport, const void* aTarget)
 {
 	// Imports are matched by their resolved address, so it does not matter whether the module

@@ -12,6 +12,7 @@ add_library(BotwarHook SHARED
 	dbghelp_forward.cpp
 	dbghelp_exports.inc
 	wic_ds.cpp
+	bot_names.cpp
 )
 
 set_target_properties(BotwarHook

@@ -61,3 +61,13 @@ if ($PSCmdlet.ShouldProcess($Target, "Install the hook ($Configuration)")) {
 	Copy-Item $Source $Target -Force
 	Write-Host "Installed the hook. wic_ds.exe writes botwar_hook.log in $GameDir."
 }
+
+# Bots are named from the ghost ladder's callsigns. An existing setting is left alone.
+$Ini = Join-Path $GameDir 'botwar_hook.ini'
+$Callsigns = (Resolve-Path (Join-Path $RepoRoot 'share/ghosts/callsigns.txt')).Path
+if (-not ((Test-Path $Ini) -and (Select-String -Path $Ini -Pattern '^\s*callsigns\s*=' -Quiet))) {
+	if ($PSCmdlet.ShouldProcess($Ini, 'Name bots from share/ghosts/callsigns.txt')) {
+		Add-Content -Path $Ini -Value "[bots]`r`ncallsigns=$Callsigns" -Encoding ascii
+		Write-Host "Bots will be named from $Callsigns (see $Ini)."
+	}
+}
