@@ -84,11 +84,19 @@ created afresh. Use `start-local.ps1 -NoGhosts` to run without them.
 
 `hook/` builds a `dbghelp.dll` for the game folder (LGPL-3.0, partly ported
 from [wic-client](https://github.com/Nukem9/wic-client)). It forwards the real
-dbghelp functions to the Windows copy and, in `wic_ds.exe` 1.0.1.1 only:
+dbghelp functions to the Windows copy. In both the game (`wic.exe`) and the
+dedicated server (`wic_ds.exe`) it resolves `*.massgate.net` (and
+`massive.se`, `ubisoft.com`) to 127.0.0.1, or to the `host` in `[massgate]` of
+an optional `botwar_hook.ini` in the game folder; the program refuses to start
+if this cannot be installed. With the hook installed, no hosts file entries
+are needed.
 
-- resolves `*.massgate.net` (and `massive.se`, `ubisoft.com`) to 127.0.0.1, or
-  to the `host` in `[massgate]` of an optional `botwar_hook.ini` next to
-  `wic_ds.exe`; the server refuses to start if this cannot be installed;
+In the game (Steam build 1.0.1.1) it also accepts a CD key of either product:
+with Soviet Assault installed, the game otherwise asks for the key every time
+multiplayer is entered if the stored key is a plain World in Conflict key.
+
+In the dedicated server (1.0.1.1) it:
+
 - keeps bots in ranked matches (the stock server turns them off) and reports
   the match anyway (it drops the whole report if a bot took part); Massgate
   ignores the bots' stats entry;
@@ -109,10 +117,10 @@ dbghelp functions to the Windows copy and, in `wic_ds.exe` 1.0.1.1 only:
 ```
 
 Then enable bots in `wic_ds.ini` alongside `RankedFlag`, e.g. `[BotMode]`
-`1` (fill both teams evenly). The hook logs to `botwar_hook.log` in the game
-folder.
+`1` (fill both teams evenly). The hook logs to `botwar_hook.log` (server) and
+`botwar_hook_game.log` (game) in the game folder.
 
-The game (and a dedicated server without the hook) still needs the host name
+Without the hook, the game and the dedicated server need the host name
 redirects described below.
 
 The manual steps follow.

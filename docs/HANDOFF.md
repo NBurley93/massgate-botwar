@@ -19,7 +19,7 @@ players**.
 | Massgate side of ranked bots | **Done.** Bot stats entries (profile 0) are ignored instead of disconnecting the server. |
 | 3a: ghost ladder (stage 1) | **Done.** 294 ghosts from a callsign file, seeded careers, simulation on every reported match. Verified in-game (profiles, medals). |
 | 2a: dedicated-server hook | **Done, verified in-game 2026-09-26.** `hook/` → `dbghelp.dll`: Massgate redirect, both ranked-bot patches, wic-client's AI fixes. A ranked match with bots finished and reported the human's stats; Massgate skipped the bots' entry. |
-| 2b: client hook | Open. `wic.exe` is SteamStub-wrapped (`.bind` section); the game still uses the hosts file. |
+| 2b: client hook | **Done, verified in-game 2026-09-26.** Redirect in `wic.exe` too, and no more CD key prompt on entering multiplayer. The hosts file entries are no longer needed (the user may remove them). |
 | 3b: bots named from the callsign pool (stage 2) | **Done, verified in-game 2026-09-26.** Bots carry random ghost callsigns in the lobby and in the match. |
 | 3c: bots *are* ghosts (stage 3) | **Done, verified in-game 2026-09-26.** Bots carry ghost profile IDs; each bot's match is reported under its ghost and updates its career and ladder. Nothing odd in-game. |
 | 1 / 4: one-click launcher, x64, SQLite | Deferred (SQLite only after there's a baseline to test against). |
@@ -33,7 +33,7 @@ The ladder list itself has not been looked at in-game with the longest (22-char)
   `World in Conflict` (gitignored) → `C:\Games\Steam\steamapps\common\World in Conflict`.
 - Toolchain: VS 2022 Community (MSVC 14.44), CMake 4.4 and Python 3.13 via scoop.
   MariaDB server 13.0.2 via scoop.
-- Hosts file (the user added these; the game still needs them, the DS with the hook does not):
+- Hosts file (the user added these; with the hook installed neither the game nor the DS needs them):
   ```
   127.0.0.1 liveaccount.massgate.net
   127.0.0.1 liveaccountbackup.massgate.net
@@ -49,10 +49,10 @@ The ladder list itself has not been looked at in-game with the longest (22-char)
   `dbghelp.dll` is `dbghelp.dll.botwar-backup` (`install-hook.ps1 -Uninstall` restores it).
   The DS writes `botwar_hook.log` there; its own logs are in
   `Documents\World in Conflict\Debug\wic_ds_*` (slot-file errors there are pre-existing).
-- **CD key:** HKCU now holds the repo's *sample* key (sequence 1; the user imported
-  `share/sql/install_cdkey.reg`). The user's own key is preserved only in
-  `CdKeys`, encoded (`MMassgateServers -dbname live -getkey <encoded>`
-  decodes it). Never print it. Offer a restore script if wanted.
+- **CD key:** HKCU holds the user's own key again (product 1; the game
+  saved it when the user typed it in on 2026-09-26). It is also in `CdKeys`, as is the
+  repo's sample key (sequence 1, product 3). Never print either key.
+  No restore script is needed any more.
 - Local account: profile **Cabal** (id 1). Test profile **StatsTest** (id 900001) is on the
   ladder with fake matches; remove when no longer needed.
 
@@ -137,6 +137,13 @@ Run it from a scratch directory: it writes log files into its working directory.
    reports it as a 0-score loss (seen in-game: "Warthog"). `wasPlayingAtMatchEnd` would be
    the natural check but is **not serialized** in `PlayerMatchStats::ToStream`, so Massgate
    always sees 0. `FakeDedicatedServer -leftprofile <id>` tests this.
+11. **Game hook** (`hook/wic_game.cpp`, `redirect.cpp`): the redirect is shared with the DS
+   and works in `wic.exe` (IAT hook in DllMain survives SteamStub: the loader fills the IAT,
+   the stub only decrypts code). The game logs to `botwar_hook_game.log`. `[debug]
+   registry=1` in `botwar_hook.ini` traces registry use under the Massive key (names/sizes
+   only). The CD key prompt: see "wic.exe" under key facts. Code patches wait for
+   decryption: `GetCommandLineA` is hooked, and the patches are applied on its first call
+   where all original bytes match (the C runtime startup of the decrypted game).
 
 ## Key facts discovered
 
@@ -186,6 +193,25 @@ Run it from a scratch directory: it writes log files into its working directory.
 - `wic_ds.exe` contains the `massgateserver` override string (it may honor
   `-massgateserver`); `wic.exe` does not.
 
+### wic.exe 1.0.1.1 Steam (image base 0x400000)
+- SteamStub-wrapped: `.text` is encrypted on disk (entry point in `.bind`). To disassemble,
+  copy `.text`/`.rdata` out of a running game with ReadProcessMemory into a copy of the
+  file (done in the session scratchpad; not kept). `.rdata` is not encrypted: the version
+  string "World in Conflict v1.0.1.1 (b35)" is at 0xCF41A0.
+- Names resolve only via `gethostbyname` (WS2_32 ordinal 52), as in the DS.
+- CD key: `HKCU\SOFTWARE\Massive Entertainment AB\World In Conflict` `CDKEY` (read
+  0x9FAF90, write 0x9FAEA0; a `-cdkey` command-line option wins over the registry).
+  Product id = first key character's alphabet index & 7 (1/2 WiC, 3/4 Soviet Assault;
+  the user's own key is 1, the repo sample key is 3). The game accepts only 1/2 without
+  `assault.dat` and only 3/4 with it, in three places: EXMASS_Client 0x8779D0 (called from
+  the multiplayer entry 0x875A62: mismatch -> key screen), the key screen's 0x8417B0
+  (in its show routine 0x841EA0: no mismatch -> use stored key, skip screen), and the
+  validator 0x79BD90 (WIC_ValidateCdKeyTask 0xBB3790; branches 0x79BDF6, 0x79BE0B). The
+  hook makes the first two return 0 and takes both branches. Patching only the screen
+  crashed the game (client and screen bounced the key back and forth until the stack
+  overflowed). The other 15 `assault.dat` uses are content switches, not key checks.
+- A failed Massgate login with AuthFailed_IllegalCDKey clears the stored key (0x878B29).
+
 ### massgate.org / wic-client
 - Source of the community "MP fix": **github.com/Nukem9/wic-client** (LGPL-3.0). It's a
   `dbghelp.dll` proxy (forwards to the original, renamed `dbghelp_old.dll`) that loads
@@ -230,11 +256,7 @@ Run it from a scratch directory: it writes log files into its working directory.
    "Classified_Information") render in the ladder list.
 2. ~~DS hook~~ **Done** (see "What changed" 8). wic-client (cloned, gitignored, into
    `third_party/wic-client`) turned out to have no CD-key protocol change in its DS hook.
-   **Client hook still open**: the game needs only the redirect, but `wic.exe` is
-   SteamStub-wrapped (`.bind` section, entry point inside it), so IAT/code patches in
-   DllMain may run before the stub unpacks. Options: hook `ws2_32!gethostbyname` itself
-   (inline), or defer to the unpacked entry point. The proxy already loads into `wic.exe`
-   as a pass-through.
+   Client hook done too (see "What changed" 11).
 3. ~~In-game test of ranked + bots~~ **Done 2026-09-26**: with `RankedFlag 1` + `BotMode 1`
    the bots joined a ranked match (so they count for the start), the match finished and
    was reported: the human's `PlayerStats`, `BestOfLadder` (score ×1.5 for the win),
@@ -252,7 +274,7 @@ Run it from a scratch directory: it writes log files into its working directory.
    shows the filter at work.
 6. Cleanup: remove test profile StatsTest (900001) and the one junk profile-0 row in
    `MatchStatsPerPlayer`. Ghost Warthog (900217) has one 0-score loss from before the filter
-   and one fake 1234 win from the fake-server test. Offer a restore script for the user's own CD key.
+   and one fake 1234 win from the fake-server test.
 7. Unexplained: before the key swap the game reported a different key sequence
    than the one the server's validator computes for the registry key.
 8. Later: one-click launcher (Phase 1), x64 port (inline `__asm` in MCommon2), SQLite

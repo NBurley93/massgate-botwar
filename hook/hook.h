@@ -27,6 +27,12 @@ bool RedirectCall(uintptr_t anAddress, uintptr_t anOriginalTarget, const void* a
 // before, or NULL if the import was not found.
 void* HookImport(HMODULE aModule, const char* aDll, const char* anExport, const void* aTarget);
 
+// Resolves the Massgate host names to [massgate] host= from anIniPath (default 127.0.0.1).
+bool InstallMassgateRedirect(const char* anIniPath);
+
+// Runs in DllMain when the process is wic.exe. Returns false if the Massgate redirect failed.
+bool PatchGame(const char* anExeDirectory);
+
 // Runs in DllMain when the process is wic_ds.exe. Returns false if a patch that keeps the server
 // away from the public Massgate DNS names failed.
 bool PatchDedicatedServer(const char* anExeDirectory);

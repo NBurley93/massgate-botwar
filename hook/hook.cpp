@@ -165,21 +165,27 @@ BOOL APIENTRY DllMain(HMODULE aModule, DWORD aReason, LPVOID aReserved)
 		return TRUE;
 	*exeName++ = 0;
 
-	// Other executables that load dbghelp.dll from the game folder (the game itself, the modkit)
-	// only get the forwarding exports.
-	if (_stricmp(exeName, "wic_ds.exe") != 0)
+	// Other executables that load dbghelp.dll from the game folder (the modkit, the broadcast
+	// tool) only get the forwarding exports.
+	const bool isServer = _stricmp(exeName, "wic_ds.exe") == 0;
+	const bool isGame = _stricmp(exeName, "wic.exe") == 0;
+	if (!isServer && !isGame)
 		return TRUE;
 
-	sprintf_s(ourLogPath, "%s\\botwar_hook.log", exePath);
+	const char* logName = isServer ? "botwar_hook.log" : "botwar_hook_game.log";
+	sprintf_s(ourLogPath, "%s\\%s", exePath, logName);
 	DeleteFileA(ourLogPath);
 	HookLog("botwar hook loaded into %s\\%s.", exePath, exeName);
 
-	if (!PatchDedicatedServer(exePath))
+	if (!(isServer ? PatchDedicatedServer(exePath) : PatchGame(exePath)))
 	{
-		// Failing closed: without the redirect the server would talk to whoever answers for the
-		// public *.massgate.net names.
-		HookLog("Stopping the server: the Massgate redirect could not be installed.");
-		MessageBoxA(NULL, "The botwar hook could not redirect Massgate to the local server, so the dedicated server will not start.\n\nSee botwar_hook.log in the game folder.", "botwar hook", MB_ICONERROR);
+		// Failing closed: without the redirect the game or server would talk to whoever answers
+		// for the public *.massgate.net names.
+		HookLog("Stopping: the Massgate redirect could not be installed.");
+		char message[512];
+		sprintf_s(message, "The botwar hook could not redirect Massgate to the local server, so %s will not start.\n\nSee %s in the game folder.",
+			isServer ? "the dedicated server" : "World in Conflict", logName);
+		MessageBoxA(NULL, message, "botwar hook", MB_ICONERROR);
 		// Not ExitProcess: that would run other DLLs' detach code under the loader lock.
 		TerminateProcess(GetCurrentProcess(), 1);
 	}
