@@ -113,8 +113,10 @@ MDB_MySqlConnection::Connect()
 	if (mySqlHandle)
 	{
 		myTimeOfLastQuery = MI_Time::GetSystemTime();
-		mySqlHandle->reconnect = 0; // Doens't work reliably anyway.
 		// Set some options - no big deal if these fail
+		my_bool reconnect = 0; // Doens't work reliably anyway.
+		if (0 != mysql_options(mySqlHandle, MYSQL_OPT_RECONNECT, &reconnect))
+			myLastErrorString = "Unknown option: MYSQL_OPT_RECONNECT";
 		unsigned int connectTimeoutInSeconds = 30;
 		if (0 != mysql_options(mySqlHandle, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&connectTimeoutInSeconds))
 			myLastErrorString = "Unknown option: MYSQL_OPT_CONNECT_TIMEOUT";

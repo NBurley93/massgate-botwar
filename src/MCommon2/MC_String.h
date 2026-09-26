@@ -157,7 +157,7 @@ public:
 	MC_Str& MakeUpper()							{ if (sizeof(C)>1) Reserve(GetLength()*2); InternalMakeUpper( GetBuffer(), GetBufferSize() ); return *this; }
 	MC_Str& MakeLower()							{ if (sizeof(C)>1) Reserve(GetLength()*2); InternalMakeLower( GetBuffer(), GetBufferSize() ); return *this; }
 
-	MC_Str& __cdecl Format(const C* aFormatString, ...);
+	MC_Str& __cdecl Format(_Printf_format_string_ const C* aFormatString, ...);
 
 	MC_Str& TrimRight();
 	MC_Str& TrimLeft();
@@ -979,7 +979,7 @@ const char* MC_Stristr(const char* aString, const char* aSubString);
 // use like this:	MC_String str = MC_Strfmt<32>("%f, %f", num1, num2); or just WhateverFunction(MC_Strfmt<>("%n says hi", name));
 template <int BUFSIZE> struct MC_Strfmt
 {
-	MC_Strfmt(const char* aString, ...)
+	MC_Strfmt(_Printf_format_string_ const char* aString, ...)
 	{
 		va_list paramList;
 		va_start(paramList, aString);

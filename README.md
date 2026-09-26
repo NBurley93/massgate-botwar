@@ -31,11 +31,23 @@ latest patches for the game. Any web server will do, more details below.
 
 ## Building Massgate
 
-To build Massgate you need _CMake_ and some version of Visual Studio. At the
-moment only Visual Studio 2015 has been tested.
+To build Massgate you need _CMake_ (3.21 or later) and Visual Studio 2022 with
+the C++ workload. Massgate is built as a 32-bit (Win32) application; the code
+contains x86 inline assembly and does not build for x64 yet.
 
-Point CMake to the root folder of the source to configure and generate a 
-solution. The solution will end up in the build folder.
+The MySQL client library is provided by MariaDB Connector/C, which is fetched
+(SHA-256 verified) and built as a 32-bit DLL by a bootstrap script. From
+PowerShell in the repository root:
+
+```
+.\scripts\bootstrap-deps.ps1
+cmake --preset win32
+cmake --build --preset release
+```
+
+The executable and `libmariadb.dll` end up in `build\bin\Release` (or
+`build\bin\Debug` with `--preset debug`). To use another MySQL or MariaDB
+client library instead, configure with `-DMYSQL_ROOT=<install prefix>`.
 
 ## Running Massgate
 

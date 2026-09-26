@@ -255,7 +255,7 @@ void MMS_Settings::PrivLoad()
 
 	if (!mySqlConnection->Connect())
 	{
-		LOG_FATAL("COULD NOT CONNECT TO DATABASE AND RETRIEVE SETTINGS!!! (%s@%s/%s)", ReadDbUser, mySqlConnection->GetLastError(), MMS_InitData::GetDatabaseName());
+		LOG_FATAL("COULD NOT CONNECT TO DATABASE AND RETRIEVE SETTINGS!!! (%s@%s/%s): %s", ReadDbUser.GetBuffer(), readhost, MMS_InitData::GetDatabaseName(), mySqlConnection->GetLastError());
 		assert(false);
 	}
 	myTimeOfNextUpdateInSeconds = 0;

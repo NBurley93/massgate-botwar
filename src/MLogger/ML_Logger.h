@@ -18,6 +18,7 @@
 
 #include "MC_HybridArray.h"
 
+#include <sal.h>
 #include "ML_Backend.h"
 
 class ML_Logger {
@@ -29,7 +30,7 @@ public:
 								LogLevel		aLevel,
 								const char*		aFile, 
 								const int		aLine,
-								const char*		aFormat,
+								_Printf_format_string_ const char*		aFormat,
 								... );
 
 	void					SetLevel(

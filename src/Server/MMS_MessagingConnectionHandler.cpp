@@ -884,7 +884,7 @@ MMS_MessagingConnectionHandler::PrivHandleIncomingInstantMessage(MN_WriteMessage
 		im.writtenAt = (unsigned int)time(NULL);
 		if (im.senderProfile.myProfileId != theToken.profileId)
 		{
-			LOG_ERROR("Incorrect sender (%u) and authtoken (%u) of message to %u", im.senderProfile, theToken.profileId, im.recipientProfile);
+			LOG_ERROR("Incorrect sender (%u) and authtoken (%u) of message to %u", im.senderProfile.myProfileId, theToken.profileId, im.recipientProfile);
 			return false;
 		}
 		
@@ -2269,7 +2269,7 @@ MMS_MessagingConnectionHandler::PrivHandleIncomingInvitePlayerToClan(
 		{
 			// Delete the invitation from the database
 			MC_StaticString<1024> sqlString;
-			sqlString.Format("DELETE FROM ClanInvitations WHERE invitationId=%I64u", invitationInsertId);
+			sqlString.Format("DELETE FROM ClanInvitations WHERE invitationId=%u", invitationInsertId);
 			MDB_MySqlQuery query(*myWriteSqlConnection);
 			MDB_MySqlResult res;
 			if (query.Modify(res, sqlString))
@@ -4070,7 +4070,7 @@ MMS_MessagingConnectionHandler::PrivHandleGetDSQueueSpotReq(
 	MMS_ServerList::Server server = MMS_MasterServer::GetInstance()->myServerList->GetServerById(clientReq.serverId - 5);
 	if(!server.serverId)
 	{
-		LOG_ERROR("cannot find server %u, did it go offline?");
+		LOG_ERROR("cannot find server %u, did it go offline?", clientReq.serverId - 5);
 		
 		MMG_WaitForSlotProtocol::MassgateToClientGetDSQueueSpotRsp clientRsp; 
 		clientRsp.serverId = clientReq.serverId; 
@@ -4109,7 +4109,7 @@ MMS_MessagingConnectionHandler::PrivHandleRemoveDSQueueSpotReq(
 	MMS_ServerList::Server server = MMS_MasterServer::GetInstance()->myServerList->GetServerById(clientReq.serverId - 5);
 	if(!server.serverId)
 	{
-		LOG_ERROR("cannot find server %u, did it go offline?");
+		LOG_ERROR("cannot find server %u, did it go offline?", clientReq.serverId - 5);
 		return true; 
 	}
 
@@ -4652,7 +4652,7 @@ MMS_MessagingConnectionHandler::PrivHandleIncomingAbuseReport(MN_WriteMessage& t
 		bool doReport=false;
 		if (kickNow && !theToken.myGroupMemberships.memberOf.moderator)
 		{
-			LOG_ERROR("Client %u from %u tried to kick but has no rights to do so! disconnecting", theToken.profileId, thePeer->myPeerIpNumber);
+			LOG_ERROR("Client %u from %s tried to kick but has no rights to do so! disconnecting", theToken.profileId, thePeer->myPeerIpNumber);
 			return false;
 		}
 		else

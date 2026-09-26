@@ -24,6 +24,7 @@
 #define MC_NUMBER_TO_STR(x) MC_NUMBER_TO_STR2(x)
 #define MC_FILEANDLINE __FILE__ "(" MC_NUMBER_TO_STR(__LINE__) "): "
 
+#include <sal.h>
 #include "ct_assert.h"
 #include "MC_GrowingArray.h"
 #include "mc_circulararray.h"
@@ -159,19 +160,19 @@ public:
 	static bool RemoveErrorListener(MC_DebugListener* aListener);
 
 	// Write debug message to listeners
-	static void __cdecl DebugMessage(const char* aMessage, ...);
+	static void __cdecl DebugMessage(_Printf_format_string_ const char* aMessage, ...);
 
 	static void SetConsolePrintFunction(CONSOLEPRINTFN aPrintFunction);
-	static void ConsolePrint(const char* aString, ...);
+	static void ConsolePrint(_Printf_format_string_ const char* aString, ...);
 
 	// Pops up a system message box. Should only be used for serious errors that the artists/designers need to see.
-	static void __cdecl MsgBox(const char* aMessage, ...);
+	static void __cdecl MsgBox(_Printf_format_string_ const char* aMessage, ...);
 	static void         SetMsgBoxHwnd(void* hwnd);
 	static void*		GetMsgBoxHwnd();
 
 	// Write debug message to alternate debugfile
-	static void __cdecl DebugMessage2( MC_Debug_AlternateDebugFile aFile, const char* aMessage, ...);
-	static void __cdecl ErrorMessage( const char* aMessage, ...);
+	static void __cdecl DebugMessage2( MC_Debug_AlternateDebugFile aFile, _Printf_format_string_ const char* aMessage, ...);
+	static void __cdecl ErrorMessage( _Printf_format_string_ const char* aMessage, ...);
 
 	// Write creates alternate debugfile. Reserves the aFile ID.
 	static bool CreateAlternateDebugFile( MC_Debug_AlternateDebugFile aFile, const char* aFilename );

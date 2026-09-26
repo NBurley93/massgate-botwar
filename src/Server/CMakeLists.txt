@@ -122,3 +122,9 @@ set_target_properties(Server
 		FOLDER "app"
 		OUTPUT_NAME MMassgateServers
 )
+
+if(MYSQL_DLL)
+	add_custom_command(TARGET Server POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_DLL}" "$<TARGET_FILE_DIR:Server>"
+	)
+endif()

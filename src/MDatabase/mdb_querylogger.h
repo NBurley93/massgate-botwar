@@ -161,7 +161,7 @@ private:
 		int fd = open(fileName, O_BINARY | O_TRUNC | O_WRONLY | O_CREAT, S_IREAD | S_IWRITE);
 		if(fd == -1)
 		{
-			LOG_ERROR("failed to open %s for writing, bailing, last error: %d", GetLastError());
+			LOG_ERROR("failed to open %s for writing, bailing, last error: %d", fileName, GetLastError());
 			return; 
 		}
 

@@ -1,0 +1,28 @@
+{
+	"version": 3,
+	"configurePresets": [
+		{
+			"name": "win32",
+			"displayName": "Visual Studio 2022, Win32",
+			"description": "32-bit build against deps/ (run scripts/bootstrap-deps.ps1 first).",
+			"generator": "Visual Studio 17 2022",
+			"architecture": "Win32",
+			"binaryDir": "${sourceDir}/build",
+			"cacheVariables": {
+				"MYSQL_ROOT": "${sourceDir}/deps/mariadb-connector-c-x86"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "debug",
+			"configurePreset": "win32",
+			"configuration": "Debug"
+		},
+		{
+			"name": "release",
+			"configurePreset": "win32",
+			"configuration": "Release"
+		}
+	]
+}

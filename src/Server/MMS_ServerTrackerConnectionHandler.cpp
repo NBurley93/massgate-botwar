@@ -1162,7 +1162,7 @@ MMS_ServerTrackerConnectionHandler::PrivHandleGetPlayerLadderRequest(MN_ReadMess
 
 	if(ladderReq.numItems == 0 || ladderReq.numItems > 100)
 	{
-		LOG_ERROR("peer asked for %u ladder items, disconnected: %s", thePeer->myPeerIpNumber); 
+		LOG_ERROR("peer asked for %u ladder items, disconnected: %s", ladderReq.numItems, thePeer->myPeerIpNumber); 
 		return false; 
 	}
 
@@ -1963,8 +1963,8 @@ MMS_ServerTrackerConnectionHandler::PrivCreateDSQuiz(MN_WriteMessage& theOutgoin
 	query.Ask(result, sql); 
 	if(result.GetAffectedNumberOrRows() != 1)
 	{
-		LOG_ERROR("failed to look up a sequence number in CD-keys table, found %d matching keys, disconnecting: %s", 
-			result.GetAffectedNumberOrRows(), thePeer->myPeerIpNumber); 
+		LOG_ERROR("failed to look up a sequence number in CD-keys table, found %u matching keys, disconnecting: %s", 
+			(unsigned int)result.GetAffectedNumberOrRows(), thePeer->myPeerIpNumber); 
 		theOutgoingMessage.WriteDelimiter(MMG_ProtocolDelimiters::SERVERTRACKER_SERVER_QUIZ_FAILED); 
 		theOutgoingMessage.WriteDelimiter(MMG_ServerProtocol::QUIZ_FAILED_CDKEY_NOT_FOUND); 
 		return false; 
@@ -2044,7 +2044,7 @@ MMS_ServerTrackerConnectionHandler::PrivHandlePlayerStatsReq(MN_ReadMessage& the
 		if(good)
 			statsRsp.ToStream(theOutgoingMessage); 
 		else
-			LOG_ERROR("Failed to lookup stats for profile: %d, disconnecting: %d", statsReq.profileId, thePeer->myPeerIpNumber); 
+			LOG_ERROR("Failed to lookup stats for profile: %d, disconnecting: %s", statsReq.profileId, thePeer->myPeerIpNumber); 
 	}
 	else 
 	{
@@ -2117,7 +2117,7 @@ MMS_ServerTrackerConnectionHandler::PrivHandleClanStatsReq(MN_ReadMessage& theIn
 		if(good)
 			statsRsp.ToStream(theOutgoingMessage); 
 		else
-			LOG_ERROR("Failed to lookup stats for clan: %d, disconnecting: %d", statsReq.clanId, thePeer->myPeerIpNumber); 		
+			LOG_ERROR("Failed to lookup stats for clan: %d, disconnecting: %s", statsReq.clanId, thePeer->myPeerIpNumber); 		
 	}
 	else 
 	{

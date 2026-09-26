@@ -1215,7 +1215,7 @@ MMS_AccountConnectionHandler::myHandleCreateAccount(const MMG_AccountProtocol::Q
 				}
 				else 
 				{
-					LOG_ERROR("mysql query failed, caanot insert into ProductOwnership tabl, accountId %u, productId %u", accountid, productId);
+					LOG_ERROR("mysql query failed, caanot insert into ProductOwnership tabl, accountId %u, productId %u", (unsigned int)accountid, productId);
 					response.Create.mySuccessFlag = false;
 					response.myStatusCode = MMG_AccountProtocol::ServerError;
 					serverStatusGood = false;

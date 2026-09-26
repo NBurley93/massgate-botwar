@@ -45,7 +45,7 @@ MDB_PrettyPrinter::ToDebug(const char* theData, unsigned int theDatalen)
 			MC_String newLine;
 			if (result.GetLength() > 0)
 			{
-				MC_Debug::DebugMessage("%s [%s]", result, lineDecode);
+				MC_Debug::DebugMessage("%s [%s]", result.GetBuffer(), lineDecode.GetBuffer());
 				result = "";
 				lineDecode = "";
 			}
@@ -62,6 +62,6 @@ MDB_PrettyPrinter::ToDebug(const char* theData, unsigned int theDatalen)
 	}
 	for (unsigned int i=0; i<16-theDatalen % 16;i++)
 		result += "   ";
-	MC_Debug::DebugMessage("%s [%s]", result, lineDecode);
+	MC_Debug::DebugMessage("%s [%s]", result.GetBuffer(), lineDecode.GetBuffer());
 }
 
