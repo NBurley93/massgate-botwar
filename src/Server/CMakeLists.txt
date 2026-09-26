@@ -45,6 +45,8 @@ add_executable(Server
 	MMS_FriendsLadder.h
 	MMS_GeoIP.cpp
 	MMS_GeoIP.h
+	MMS_GhostLadder.cpp
+	MMS_GhostLadder.h
 	MMS_HashTable.cpp
 	MMS_HashTable.h
 	MMS_HeapImplementation.h

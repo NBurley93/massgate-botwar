@@ -1,5 +1,6 @@
 # Starts the local Massgate stack, each part in its own console window:
 #   MariaDB (127.0.0.1:3306), the patch/news web server (127.0.0.1:80), and Massgate (port 3001).
+# Massgate runs with the ghost ladder (share/ghosts/callsigns.txt) unless -NoGhosts is given.
 # Run scripts/setup-db.ps1 once before the first start. Close a window to stop that part.
 
 [CmdletBinding()]
@@ -8,6 +9,8 @@ param(
 	[int]$DbPort = 3306,
 	[int]$WebPort = 80,
 	[int]$MassgatePort = 3001,
+	# Run without the simulated ghost players on the ladder.
+	[switch]$NoGhosts,
 	[string]$MariaDbHome
 )
 
@@ -35,5 +38,10 @@ if (-not (Test-Path $Exe)) { throw "$Exe not found; build it first (see README).
 $WorkDir = Join-Path $RepoRoot 'runtime/massgate'
 New-Item -ItemType Directory -Force $WorkDir | Out-Null
 Copy-Item (Join-Path $RepoRoot 'config.ini') $WorkDir -Force
+if (-not $NoGhosts) {
+	# The ghost ladder reads its callsigns from the path in config.ini.
+	$Callsigns = (Resolve-Path (Join-Path $RepoRoot 'share/ghosts/callsigns.txt')).Path
+	Add-Content -Path (Join-Path $WorkDir 'config.ini') -Value "[ghosts]`r`ncallsigns=$Callsigns"
+}
 Start-Process -FilePath $Exe -ArgumentList 'live', '-noboom', '-all', '-dbname', 'live', '-massgateport', $MassgatePort -WorkingDirectory $WorkDir
 Write-Host "Massgate starting on port $MassgatePort (logs in runtime/massgate)."

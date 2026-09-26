@@ -87,6 +87,8 @@ if ($TableCount -eq 0) {
 	Write-Host 'Loading share/sql/databasestructure.sql'
 	Get-Content (Join-Path $RepoRoot 'share/sql/databasestructure.sql') -Raw | Invoke-MariaDb $Bin $Port -Database $DatabaseName
 }
-Get-Content (Join-Path $RepoRoot 'share/sql/fixes.sql') -Raw | Invoke-MariaDb $Bin $Port -Database $DatabaseName
+foreach ($Patch in 'fixes.sql', 'ghosts.sql') {
+	Get-Content (Join-Path $RepoRoot "share/sql/$Patch") -Raw | Invoke-MariaDb $Bin $Port -Database $DatabaseName
+}
 $TableCount = [int]("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DatabaseName'" | Invoke-MariaDb $Bin $Port -Scalar)
 Write-Host "Database '$DatabaseName' ready on 127.0.0.1:$Port with $TableCount tables."

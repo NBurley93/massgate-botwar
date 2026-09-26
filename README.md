@@ -68,6 +68,18 @@ repository root:
 resolves to IPv6 first, and every one of Massgate's ~150 database connections
 would then wait for the IPv6 attempt to time out.
 
+#### Ghost Ladder
+
+With only a few real players, ladder percentages (and so the officer ranks,
+which require them) mean little. `start-local.ps1` therefore runs Massgate
+with a ghost ladder: every name in `share/ghosts/callsigns.txt` becomes a
+simulated player with a career, a place on the ladder and a playing habit.
+Whenever a real match is reported, the ghosts play the matches they would
+have played since the last update, through the same stats code as real
+matches. Edit the file (friends' names welcome) and restart Massgate to add
+or retire ghosts; `.\scripts\reset-ghosts.ps1` removes them all so they are
+created afresh. Use `start-local.ps1 -NoGhosts` to run without them.
+
 The game and dedicated server still need the host name redirects described
 below.
 

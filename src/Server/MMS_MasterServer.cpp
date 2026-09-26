@@ -24,6 +24,7 @@
 #include "MMS_EventTypes.h"
 #include "MMS_InitData.h"
 #include "MMS_LadderUpdater.h"
+#include "MMS_GhostLadder.h"
 #include "MMS_MultiKeyManager.h"
 #include "MMS_PersistenceCache.h"
 #include "MMS_PlayerStats.h"
@@ -105,9 +106,13 @@ MMS_MasterServer::MMS_MasterServer()
 	myAuthenticationUpdater->Start();
 	MMS_PersistenceCache::StartPurgeThread(); 
 	MMS_PersistenceCache::ReloadRankDefinitions(myWriteSqlConnection);
+	// Before the ladder updater loads the ladder: new ghosts come with ladder entries.
+	MMS_GhostLadder::Create(*mySettings, myWriteSqlConnection);
 	myLadderUpdater = new MMS_LadderUpdater(*mySettings);
 	myLadderUpdater->Start();
 	myPlayerStats = new MMS_PlayerStats(*mySettings, this); 
+	if (MMS_GhostLadder::GetInstance())
+		MMS_GhostLadder::GetInstance()->Start();
 	myClanStats = new MMS_ClanStats(*mySettings); 
 	myClanStats->Start(); 
 	myServerList = new MMS_ServerList(mySettings->WriteDbHost, mySettings->WriteDbUser, mySettings->WriteDbPassword);

@@ -53,6 +53,7 @@
 #include "MMS_CdKeyManagement.h"
 
 #include "ML_Logger.h"
+#include "MMS_GhostLadder.h"
 
 static const char* DEDICATED_SERVER = "DEDICATED SERVER";
 static const unsigned int MMS_DEFAULT_THREAD_TIMEOUT = 29*60*999; // Next check in 29 minutes (-1.74 seconds)
@@ -794,6 +795,10 @@ MMS_ServerTrackerConnectionHandler::PrivHandleReportPlayerStats(MN_ReadMessage& 
 	}
 
 	PrivLogPerRoleMatchStats(statsInfos, numStatsInMessage, mapHash); 
+
+	// A real match was played; let the ghosts catch up.
+	if (MMS_GhostLadder::GetInstance())
+		MMS_GhostLadder::GetInstance()->OnMatchReported();
 
 	return good; 
 }
