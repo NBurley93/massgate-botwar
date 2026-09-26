@@ -51,6 +51,28 @@ client library instead, configure with `-DMYSQL_ROOT=<install prefix>`.
 
 ## Running Massgate
 
+### Quick Start (Local, Scripted)
+
+The scripts in `scripts/` set up everything below on one machine without
+administrator rights, using a MariaDB server (e.g. `scoop install mariadb`)
+with its data kept in the gitignored `runtime/` folder. From PowerShell in the
+repository root:
+
+```
+.\scripts\setup-db.ps1       # once: data directory, accounts, schema
+.\scripts\register-cdkey.ps1 # once: add this machine's WiC CD key to CdKeys
+.\scripts\start-local.ps1    # MariaDB, web server on :80, Massgate on :3001
+```
+
+`config.ini` points at `127.0.0.1` rather than `localhost`: `localhost`
+resolves to IPv6 first, and every one of Massgate's ~150 database connections
+would then wait for the IPv6 attempt to time out.
+
+The game and dedicated server still need the host name redirects described
+below.
+
+The manual steps follow.
+
 ### MySQL
 
 In order to run Massgate, you need a MySQL server it can connect to and a 
