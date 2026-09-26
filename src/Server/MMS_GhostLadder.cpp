@@ -42,9 +42,12 @@ namespace
 	// Reports above PlayerScoreSuspect (3000 by default) are logged as possible stat padding.
 	const unsigned int	MAX_MATCH_SCORE = 2900;
 
-	// Profile name rules from MMS_AccountConnectionHandler (adding a profile).
+	// Profile name rules from MMS_AccountConnectionHandler (adding a profile), except the
+	// length: players are held to 13 characters to leave room for a clan tag, which the server
+	// prepends at runtime (up to 23 characters in total). Ghosts never join a clan, so they
+	// may use that room, up to the width of Profiles.profileName and GhostPlayers.callsign.
 	const unsigned int	MIN_PROFILENAME_LENGTH = 3;
-	const unsigned int	MAX_PROFILENAME_LENGTH = MMG_ProfilenameStringSize - MMG_ClanTagStringSize - 1;
+	const unsigned int	MAX_PROFILENAME_LENGTH = 22;
 
 	unsigned int HashCallsign(const char* aCallsign)
 	{
@@ -84,7 +87,7 @@ namespace
 			return false;
 		for (const char* c = aCallsign; *c; c++)
 		{
-			if (*c < 32 || *c > 126 || *c == '|' || *c == '\\' || *c == '\'')
+			if (*c < 32 || *c > 126 || *c == '|' || *c == '\\')
 				return false;
 		}
 		return !strstr(aCallsign, "CLAN") && !strstr(aCallsign, "PLAYER") && !strstr(aCallsign, "PROFILE");
@@ -401,7 +404,7 @@ MMS_GhostLadder::PrivReadCallsigns(const char* aCallsignFile, MC_GrowingArray<MC
 			continue;
 		if (!IsValidCallsign(start))
 		{
-			LOG_ERROR("Ignoring ghost callsign '%s': names must be %u-%u printable ASCII characters without CLAN, PLAYER, PROFILE, |, \\ or '.", start, MIN_PROFILENAME_LENGTH, MAX_PROFILENAME_LENGTH);
+			LOG_ERROR("Ignoring ghost callsign '%s': names must be %u-%u printable ASCII characters without CLAN, PLAYER, PROFILE, | or \\.", start, MIN_PROFILENAME_LENGTH, MAX_PROFILENAME_LENGTH);
 			continue;
 		}
 
@@ -476,9 +479,11 @@ MMS_GhostLadder::PrivCreateMissingGhosts(MDB_MySqlConnection& aConnection, const
 	for (int i = 0; i < callsigns.Count(); i++)
 	{
 		const char* callsign = callsigns[i].GetBuffer();
+		MC_StaticString<1024> callsignSql;
+		aConnection.MakeSqlString(callsignSql, callsign);
 
 		MC_StaticString<256> sql;
-		sql.Format("UPDATE GhostPlayers SET isActive=1 WHERE callsign='%s'", callsign);
+		sql.Format("UPDATE GhostPlayers SET isActive=1 WHERE callsign='%s'", callsignSql.GetBuffer());
 		if (!query.Modify(result, sql.GetBuffer()))
 			return false;
 		if (result.GetAffectedNumberOrRows() > 0)
@@ -488,7 +493,7 @@ MMS_GhostLadder::PrivCreateMissingGhosts(MDB_MySqlConnection& aConnection, const
 		}
 
 		// Never take a name a real player already uses (names compare case-insensitively).
-		sql.Format("SELECT profileId FROM Profiles WHERE normalizedProfileName='%s'", callsign);
+		sql.Format("SELECT profileId FROM Profiles WHERE normalizedProfileName='%s'", callsignSql.GetBuffer());
 		if (!query.Ask(result, sql.GetBuffer()))
 			return false;
 		if (result.GetNextRow(row))
@@ -549,13 +554,16 @@ MMS_GhostLadder::PrivCreateGhost(MDB_MySqlConnection& aConnection, unsigned int 
 		}
 	}
 
+	MC_StaticString<1024> callsignSql;
+	aConnection.MakeSqlString(callsignSql, aCallsign);
+
 	MDB_MySqlTransaction trans(aConnection);
 	MDB_MySqlResult result;
 	MC_StaticString<4096> sql;
 
 	sql.Format("INSERT INTO Profiles (accountId, profileName, normalizedProfileName, lastLogin, isDeleted) "
 		"VALUES (%u, '%s', '%s', FROM_UNIXTIME(%u), 'no')",
-		anAccountId, aCallsign, aCallsign, lastMatch);
+		anAccountId, callsignSql.GetBuffer(), callsignSql.GetBuffer(), lastMatch);
 	if (!trans.Execute(result, sql.GetBuffer()))
 		return false;
 	const unsigned int profileId = (unsigned int)trans.GetLastInsertId();
@@ -607,7 +615,7 @@ MMS_GhostLadder::PrivCreateGhost(MDB_MySqlConnection& aConnection, unsigned int 
 
 	sql.Format("INSERT INTO GhostPlayers (profileId, callsign, skill, matchesPerDay, favoriteRole, lastSimulated, isActive) "
 		"VALUES (%u, '%s', %f, %f, %u, %u, 1)",
-		profileId, aCallsign, persona.mySkill, persona.myMatchesPerDay, persona.myFavoriteRole, now);
+		profileId, callsignSql.GetBuffer(), persona.mySkill, persona.myMatchesPerDay, persona.myFavoriteRole, now);
 	if (!trans.Execute(result, sql.GetBuffer()))
 		return false;
 

@@ -4,7 +4,7 @@
 # go wild; restart Massgate to pick up changes. Removing a name retires that ghost: it
 # stops playing and drops off the ladder after three weeks (its profile stays).
 #
-# Names must be 3-13 printable ASCII characters, must not contain CLAN, PLAYER, PROFILE,
+# Names must be 3-22 printable ASCII characters, must not contain CLAN, PLAYER, PROFILE,
 # | or \, and must not match an existing player's name (case-insensitive).
 
 Bratwurst
@@ -248,3 +248,65 @@ Voodoo
 WarBuffalo3
 xdominos
 Zanax
+
+# Vtubers
+SmugAlana
+Crelly
+Crevetta
+henya
+Grimmi
+Suto
+ChaCha
+FeFe
+Kirsche
+DokiDoMiki
+Mizuki
+SquChan
+Tomoe Umari
+Powdur
+Lucia
+LucyPyre
+Pippa
+Miwabelle
+CottontailVA
+Stimpak
+chibidoki
+SkyAboveMe
+nyanners
+Nyanus
+
+
+# Other creators
+TerminalMontage
+SargonofAkkad
+MentisWave
+Arch
+FAVES
+Zazah
+CallmeEzekiel
+DonutOperator
+AKGuy
+KingTrout
+Fat Electrician
+Phil Labonte
+centurri-chan
+Count Dankula
+Savvy
+Hirotonfa
+Shoe0nhead
+Nerdrotic
+hoe_math
+Flashgitz
+Papa Meat
+Alteori
+Peeb
+Otto von Biscuit
+John Doyle
+ThiccFilA
+pantsahat
+Primeagen
+OhDough
+Sam Hyde
+teej_dv
+cmuratori
+trashh_dev

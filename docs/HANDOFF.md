@@ -1,6 +1,6 @@
 # massgate-botwar handoff
 
-Last updated: 2026-09-25. Branch: `phase0/modern-build` (not pushed, not merged into `master`).
+Last updated: 2026-09-26. Branch: `phase0/modern-build` (not pushed, not merged into `master`).
 
 ## Goal
 
@@ -170,28 +170,24 @@ Run it from a scratch directory: it writes log files into its working directory.
   `PrivHandleReportPlayerStats` finishes. For each active ghost it plays
   Poisson(matchesPerDay × elapsed) matches (elapsed capped at the ladder window, at most
   20 per run) through `UpdatePlayerStats`, and updates `Profiles.lastLogin`.
-- Callsign rules = the game's profile rules: 3–13 printable ASCII chars, no
-  `CLAN`/`PLAYER`/`PROFILE`/`|`/`\`; also no `'` (for SQL). Names taken by real players
-  are skipped.
+- Callsign rules = the game's profile rules (printable ASCII, no
+  `CLAN`/`PLAYER`/`PROFILE`/`|`/`\`), but 3–**22** chars instead of 3–13: players are held
+  to 13 to leave room for a clan tag, which the server prepends at runtime (tagged names
+  reach 23 chars on the wire and in the UI). Ghosts never have a clan, and 22 is the width of
+  `Profiles.profileName` and `GhostPlayers.callsign`. `'` is allowed (escaped with
+  `MakeSqlString`). Names taken by real players are skipped.
 
 ## Open items / next steps
 
-0. **Verify the medals fix** (commit 7528750; built, not yet run). Opening a ghost's profile in-game
-   disconnected the game (Massgate log: "Post mortem debugging: 197" =
-   `SERVERTRACKER_USER_PLAYER_MEDALS_REQ`), because ghosts were seeded without the
-   `PlayerMedals`/`PlayerBadges` rows that profile creation adds.
-   `PlayerStatsEntry::Load` fails without the medals row, which also meant each
-   such ghost's first simulated match was dropped. The fix inserts both rows when seeding
-   and backfills existing ghosts (`INSERT IGNORE ... SELECT FROM GhostPlayers`) on startup.
-   **Verify:** start the stack, open several ghost profiles in-game (medals and badges tabs), and
-   check the log has no "Post mortem debugging" lines. The next start also creates the
-   user's newly added friend-name ghosts.
-1. **Callsign file**: the user added friend names; **19 of 239 are skipped** (18 longer
-   than 13 chars: e.g. "Classified_Information", "Vincent Van Gogurt", "Bill Nye the High
-   Guy", "Microsoft Excel"; 1 with an apostrophe: `FRaG'[D]`), and `Bearcat` is listed twice.
-   Options: shorten them, or allow ghosts up to the full `MMG_ProfilenameStringSize`
-   (ghosts never have a clan tag) and escape `'` with `MakeSqlString`. Check the client's
-   name buffers before relaxing the length.
+0. ~~Medals fix~~ **Verified in-game 2026-09-26** (commit 7528750): ghost profiles open
+   without disconnects, and the log has no "Post mortem debugging" lines. (Ghosts had been
+   seeded without the `PlayerMedals`/`PlayerBadges` rows that profile creation adds, so
+   `SERVERTRACKER_USER_PLAYER_MEDALS_REQ` (197) failed and dropped the game's connection.)
+1. **Callsign file**: done. Ghost names may now be up to 22 chars and contain `'`
+   (see the ghost ladder design section). 294 ghosts; only "max freeze long lasting relief"
+   (30 chars) is still skipped, and `Bearcat` is listed twice (deduplicated). Not yet
+   checked specifically: how the longest names (e.g. "Bill Nye the High Guy",
+   "Classified_Information") render in the ladder list.
 2. **Phase 2 hook**: fork wic-client → minimal `dbghelp.dll` proxy + DS hook with the build
    check, a DNS redirect to 127.0.0.1 (makes the hosts file unnecessary), the two
    ranked-bot patches, and their AI assert fixes. Decide what to do with their CD-key
