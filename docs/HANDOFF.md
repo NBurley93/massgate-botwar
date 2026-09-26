@@ -53,8 +53,9 @@ The ladder list itself has not been looked at in-game with the longest (22-char)
   saved it when the user typed it in on 2026-09-26). It is also in `CdKeys`, as is the
   repo's sample key (sequence 1, product 3). Never print either key.
   No restore script is needed any more.
-- Local account: profile **Cabal** (id 1). Test profile **StatsTest** (id 900001) is on the
-  ladder with fake matches; remove when no longer needed.
+- Local account: profile **Cabal** (id 1). The test profile StatsTest (900001) and all
+  fake-server matches were removed on 2026-09-26 (backup of the deleted rows in that
+  session's scratchpad only).
 
 ## Running it
 
@@ -78,11 +79,17 @@ Then start `wic_ds.exe` from the game folder, and the game.
 
 ### Test tool
 
-`build/bin/<cfg>/FakeDedicatedServer.exe -massgateserver 127.0.0.1 -cdkey LABGU3MFRG9G95GBAYTH -profile 900001 [-bots]`
+`build/bin/<cfg>/FakeDedicatedServer.exe -massgateserver 127.0.0.1 -cdkey LABGU3MFRG9G95GBAYTH -profile <id> [-bots] [-leftprofile <id>]`
 registers a ranked server through the same client library `wic_ds` uses
-(`MMG_TrackableServer`), reports end-of-match stats (optionally with a bot entry first),
-and exits 0 if Massgate kept the connection. It also triggers the ghost simulation.
-Run it from a scratch directory: it writes log files into its working directory.
+(`MMG_TrackableServer`), reports end-of-match stats (optionally with a bot entry first,
+and with a player who never played), and exits 0 if Massgate kept the connection. It also
+triggers the ghost simulation. Run it from a scratch directory: it writes log files into
+its working directory.
+
+The stats it reports are real: they go into the profile's career and ladder. Use a
+throwaway profile (it needs `Profiles`, `PlayerStats`, `PlayerMedals` and `PlayerBadges`
+rows), and afterwards delete its rows plus the fake matches: map hash 1311768465173141112
+in `MatchStatsPerPlayer` and `MatchStatsPerRole`.
 
 ## What changed in the codebase (commits on the branch)
 
@@ -272,9 +279,11 @@ Run it from a scratch directory: it writes log files into its working directory.
    verified with the fake server). A ghost that plays for real still also gets simulated
    catch-up matches. The Massgate log line "Ignoring stats of ghost ... never played"
    shows the filter at work.
-6. Cleanup: remove test profile StatsTest (900001) and the one junk profile-0 row in
-   `MatchStatsPerPlayer`. Ghost Warthog (900217) has one 0-score loss from before the filter
-   and one fake 1234 win from the fake-server test.
+6. ~~Cleanup~~ **Done 2026-09-26**: deleted StatsTest (900001), every fake-server match
+   (map hash 1311768465173141112 = 0x1234567812345678, in `MatchStatsPerPlayer` and
+   `MatchStatsPerRole`), the profile-0 row, and ghost Warthog (900217, which had a 0-score
+   loss from before the filter and a fake win); Massgate recreated Warthog as 900450 with a
+   new career. Cabal's real match rows and the real bot rows were kept.
 7. Unexplained: before the key swap the game reported a different key sequence
    than the one the server's validator computes for the registry key.
 8. Later: one-click launcher (Phase 1), x64 port (inline `__asm` in MCommon2), SQLite
