@@ -38,10 +38,15 @@ if (-not (Test-Path $Exe)) { throw "$Exe not found; build it first (see README).
 $WorkDir = Join-Path $RepoRoot 'runtime/massgate'
 New-Item -ItemType Directory -Force $WorkDir | Out-Null
 Copy-Item (Join-Path $RepoRoot 'config.ini') $WorkDir -Force
+# Massgate writes the ghosts' profile ids here; the dedicated-server hook reads it to make bots ghosts.
+$Roster = Join-Path $RepoRoot 'runtime\ghost_roster.txt'
 if (-not $NoGhosts) {
 	# The ghost ladder reads its callsigns from the path in config.ini.
 	$Callsigns = (Resolve-Path (Join-Path $RepoRoot 'share/ghosts/callsigns.txt')).Path
-	Add-Content -Path (Join-Path $WorkDir 'config.ini') -Value "[ghosts]`r`ncallsigns=$Callsigns"
+	Add-Content -Path (Join-Path $WorkDir 'config.ini') -Value "[ghosts]`r`ncallsigns=$Callsigns`r`nroster=$Roster"
+} elseif (Test-Path $Roster) {
+	# Without ghosts, bots must not report stats for ghost profiles.
+	Remove-Item $Roster
 }
 Start-Process -FilePath $Exe -ArgumentList 'live', '-noboom', '-all', '-dbname', 'live', '-massgateport', $MassgatePort -WorkingDirectory $WorkDir
 Write-Host "Massgate starting on port $MassgatePort (logs in runtime/massgate)."

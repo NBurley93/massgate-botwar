@@ -21,7 +21,7 @@ players**.
 | 2a: dedicated-server hook | **Done, verified in-game 2026-09-26.** `hook/` → `dbghelp.dll`: Massgate redirect, both ranked-bot patches, wic-client's AI fixes. A ranked match with bots finished and reported the human's stats; Massgate skipped the bots' entry. |
 | 2b: client hook | Open. `wic.exe` is SteamStub-wrapped (`.bind` section); the game still uses the hosts file. |
 | 3b: bots named from the callsign pool (stage 2) | **Done, verified in-game 2026-09-26.** Bots carry random ghost callsigns in the lobby and in the match. |
-| 3c: bots *are* ghosts (stage 3, stretch) | Give bot slots ghost profile IDs so real bot performance updates ghosts. |
+| 3c: bots *are* ghosts (stage 3) | **Done, verified in-game 2026-09-26.** Bots carry ghost profile IDs; each bot's match is reported under its ghost and updates its career and ladder. Nothing odd in-game. |
 | 1 / 4: one-click launcher, x64, SQLite | Deferred (SQLite only after there's a baseline to test against). |
 
 The ladder list itself has not been looked at in-game with the longest (22-char) ghost names.
@@ -125,6 +125,18 @@ Run it from a scratch directory: it writes log files into its working directory.
    script sets it to `share/ghosts/callsigns.txt`), same rules as the ghost ladder; no two
    bots share one (tracked per player-info slot). 0x45C110 has 5 other callers (human
    paths); they don't reset bot names.
+10. **Bots are ghosts**: Massgate writes `runtime/ghost_roster.txt` (`<profileId>\t<callsign>`
+   per active ghost, `MMS_GhostLadder::PrivWriteRoster`) when `config.ini` has `[ghosts]
+   roster=` (`start-local.ps1` sets it; `-NoGhosts` deletes the roster). The hook reads it via
+   `[bots] roster=` and also writes the ghost's id to the bot's `myMassgateProfileId` (+0x8).
+   The DS maps players to stats records by profile id, so each bot now gets its own record
+   and entry in the end-of-match report (before, all bots shared profile 0). Massgate
+   accepts any profile from a ranked server. `MMS_GhostLadder::IsGhost` (sorted ids loaded
+   at startup) lets `PrivHandleReportPlayerStats` drop ghost entries with no time played
+   (USA+USSR+NATO = 0): auto-even removes a bot when a player joins, and the DS still
+   reports it as a 0-score loss (seen in-game: "Warthog"). `wasPlayingAtMatchEnd` would be
+   the natural check but is **not serialized** in `PlayerMatchStats::ToStream`, so Massgate
+   always sees 0. `FakeDedicatedServer -leftprofile <id>` tests this.
 
 ## Key facts discovered
 
@@ -233,10 +245,14 @@ Run it from a scratch directory: it writes log files into its working directory.
 4. ~~Stage 2~~ **Done**: bots are named from the callsign pool (see "What changed" 9). Names
    are the bare callsign so they match ladder ghosts; a bot callsign may still match a name
    the ladder skipped (taken by a real player).
-5. **Stage 3 (stretch)**: set a ghost's profile ID on its bot so bot stats update that
-   ghost. Risk: the DS may then treat bots as Massgate players (auth, invites, kicks).
+5. ~~Stage 3~~ **Done** (see "What changed" 10). Not yet confirmed from a real match that a
+   bot removed by auto-even reports zero time played (the filter's assumption; it was
+   verified with the fake server). A ghost that plays for real still also gets simulated
+   catch-up matches. The Massgate log line "Ignoring stats of ghost ... never played"
+   shows the filter at work.
 6. Cleanup: remove test profile StatsTest (900001) and the one junk profile-0 row in
-   `MatchStatsPerPlayer`. Offer a restore script for the user's own CD key.
+   `MatchStatsPerPlayer`. Ghost Warthog (900217) has one 0-score loss from before the filter
+   and one fake 1234 win from the fake-server test. Offer a restore script for the user's own CD key.
 7. Unexplained: before the key swap the game reported a different key sequence
    than the one the server's validator computes for the registry key.
 8. Later: one-click launcher (Phase 1), x64 port (inline `__asm` in MCommon2), SQLite

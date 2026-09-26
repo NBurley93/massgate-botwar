@@ -42,6 +42,9 @@ public:
 	// Wakes the simulation; called after a real match has been reported.
 	void					OnMatchReported();
 
+	// Whether a profile is a ghost (bots on a hooked dedicated server play as ghosts).
+	bool					IsGhost(unsigned int aProfileId) const { return myGhostProfileIds.FindInSortedArray(aProfileId) != -1; }
+
 	virtual void			Run();
 
 	class Persona
@@ -73,6 +76,8 @@ private:
 							~MMS_GhostLadder();
 
 	bool					PrivCreateMissingGhosts(MDB_MySqlConnection& aConnection, const char* aCallsignFile);
+	bool					PrivLoadGhostProfileIds(MDB_MySqlConnection& aConnection);
+	void					PrivWriteRoster(MDB_MySqlConnection& aConnection, const char* aRosterFile);
 	bool					PrivReadCallsigns(const char* aCallsignFile, MC_GrowingArray<MC_StaticString<32> >& someCallsigns);
 	unsigned int			PrivGetGhostAccount(MDB_MySqlConnection& aConnection);
 	bool					PrivCreateGhost(MDB_MySqlConnection& aConnection, unsigned int anAccountId, const char* aCallsign);
@@ -85,6 +90,8 @@ private:
 	MDB_MySqlConnection*	myConnection;
 	MT_Event				myWakeEvent;
 	Random					myRandom;
+	// Sorted; filled at startup and read-only afterwards, so any thread may read it.
+	MC_GrowingArray<unsigned int>	myGhostProfileIds;
 };
 
 #endif

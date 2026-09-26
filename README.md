@@ -93,10 +93,15 @@ dbghelp functions to the Windows copy and, in `wic_ds.exe` 1.0.1.1 only:
   the match anyway (it drops the whole report if a bot took part); Massgate
   ignores the bots' stats entry;
 - applies wic-client's Commander AI crash fixes;
-- names bots after random callsigns from the ghost ladder's pool, so you play
-  against the names on the ladder (`[bots]` `callsigns=` in
-  `botwar_hook.ini`, which `install-hook.ps1` points at
-  `share/ghosts/callsigns.txt`; without it bots keep their AI names).
+- makes bots ghosts: each bot takes a random ghost's name and profile, so
+  you play against the ladder, and the bot's match counts for that ghost.
+  Massgate writes the ghosts' profile ids to `runtime/ghost_roster.txt` at
+  startup (`[ghosts]` `roster=` in `config.ini`, set by `start-local.ps1`);
+  the hook reads it through `[bots]` `roster=` in `botwar_hook.ini`, which
+  `install-hook.ps1` sets up. Without a roster, bots only take names from
+  `[bots]` `callsigns=` and their stats are ignored; without either they keep
+  their AI names. Massgate ignores a ghost's entry if its bot never played
+  (e.g. removed when a player joined).
 
 ```
 .\scripts\install-hook.ps1              # backs up the game's dbghelp.dll

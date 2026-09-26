@@ -770,17 +770,32 @@ MMS_ServerTrackerConnectionHandler::PrivHandleReportPlayerStats(MN_ReadMessage& 
 	// Bots have no profile. A (patched) server that allows bots in ranked games reports them
 	// as a single entry with profileId 0; drop it so it neither fails the whole message
 	// (UpdatePlayerStats rejects profile 0) nor ends up in the match logs.
+	// Bots that play as ghosts report under the ghost's profile. A server with automatic bots
+	// removes a bot when a player joins, and still reports it like a player who left, with a
+	// loss: drop ghosts that never played (wasPlayingAtMatchEnd would say more, but it is not
+	// part of the stats message).
+	const MMS_GhostLadder* ghostLadder = MMS_GhostLadder::GetInstance();
 	unsigned int numPlayerStats = 0;
+	unsigned int numBotStats = 0;
 	for(unsigned int i = 0; i < numStatsInMessage; i++)
 	{
 		if(statsInfos[i].profileId == 0)
+		{
+			numBotStats++;
 			continue;
+		}
+		const unsigned int timePlayed = statsInfos[i].timePlayedAsUSA + statsInfos[i].timePlayedAsUSSR + statsInfos[i].timePlayedAsNATO;
+		if(timePlayed == 0 && ghostLadder && ghostLadder->IsGhost(statsInfos[i].profileId))
+		{
+			LOG_INFO("Ignoring stats of ghost %u (score %u) from server %s: its bot never played.", statsInfos[i].profileId, (unsigned int)statsInfos[i].scoreTotal, thePeer->myPeerIpNumber);
+			continue;
+		}
 		if(numPlayerStats != i)
 			statsInfos[numPlayerStats] = statsInfos[i];
 		numPlayerStats++;
 	}
-	if(numPlayerStats != numStatsInMessage)
-		LOG_INFO("Ignoring %u bot stats entries from server %s.", numStatsInMessage - numPlayerStats, thePeer->myPeerIpNumber);
+	if(numBotStats)
+		LOG_INFO("Ignoring %u bot stats entries from server %s.", numBotStats, thePeer->myPeerIpNumber);
 	numStatsInMessage = numPlayerStats;
 	if(numStatsInMessage == 0)
 		return true;

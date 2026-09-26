@@ -339,6 +339,7 @@ MMS_GhostLadder::MMS_GhostLadder(const MMS_Settings& theSettings)
 , myConnection(NULL)
 , myRandom((unsigned int)time(NULL) ^ GetCurrentProcessId())
 {
+	myGhostProfileIds.Init(512, 256, false);
 }
 
 MMS_GhostLadder::~MMS_GhostLadder()
@@ -369,14 +370,61 @@ MMS_GhostLadder::Create(const MMS_Settings& theSettings, MDB_MySqlConnection* aW
 		MMS_InitData::GetDatabaseName(),
 		false);
 	if (!ghostLadder->myConnection->Connect()
-		|| !ghostLadder->PrivCreateMissingGhosts(*aWriteConnection, callsignFile.GetBuffer()))
+		|| !ghostLadder->PrivCreateMissingGhosts(*aWriteConnection, callsignFile.GetBuffer())
+		|| !ghostLadder->PrivLoadGhostProfileIds(*aWriteConnection))
 	{
 		LOG_ERROR("Ghost ladder disabled: setup failed.");
 		delete ghostLadder;
 		return;
 	}
 	ghostLadder->PrivUpdateGhostRanks(*aWriteConnection);
+	if (config.HasKey("ghosts.roster"))
+	{
+		MC_StaticString<1024> rosterFile = config.GetString("ghosts.roster");
+		ghostLadder->PrivWriteRoster(*aWriteConnection, rosterFile.GetBuffer());
+	}
 	ourInstance = ghostLadder;
+}
+
+bool
+MMS_GhostLadder::PrivLoadGhostProfileIds(MDB_MySqlConnection& aConnection)
+{
+	MDB_MySqlQuery query(aConnection);
+	MDB_MySqlResult result;
+	if (!query.Ask(result, "SELECT profileId FROM GhostPlayers"))
+		return false;
+	MDB_MySqlRow row;
+	while (result.GetNextRow(row))
+		myGhostProfileIds.Add((unsigned int)row["profileId"]);
+	myGhostProfileIds.Sort();
+	return true;
+}
+
+void
+MMS_GhostLadder::PrivWriteRoster(MDB_MySqlConnection& aConnection, const char* aRosterFile)
+{
+	// The dedicated-server hook reads this to give each bot a ghost's name and profile, so
+	// the bot's match counts for that ghost: "<profileId>\t<callsign>" per active ghost.
+	MDB_MySqlQuery query(aConnection);
+	MDB_MySqlResult result;
+	if (!query.Ask(result, "SELECT profileId, callsign FROM GhostPlayers WHERE isActive=1 ORDER BY profileId"))
+		return;
+
+	FILE* file = fopen(aRosterFile, "wt");
+	if (!file)
+	{
+		LOG_ERROR("Could not write the ghost roster %s.", aRosterFile);
+		return;
+	}
+	unsigned int numGhosts = 0;
+	MDB_MySqlRow row;
+	while (result.GetNextRow(row))
+	{
+		fprintf(file, "%u\t%s\n", (unsigned int)row["profileId"], (const char*)row["callsign"]);
+		numGhosts++;
+	}
+	fclose(file);
+	LOG_INFO("Ghost roster: %u ghosts written to %s.", numGhosts, aRosterFile);
 }
 
 bool

@@ -17,10 +17,12 @@
 // A stand-in for wic_ds.exe that uses the same client library (MMG_TrackableServer) to
 // register a ranked server with Massgate and report end-of-match player stats.
 //
-//   FakeDedicatedServer -massgateserver 127.0.0.1 -cdkey <key> -profile <id> [-bots]
+//   FakeDedicatedServer -massgateserver 127.0.0.1 -cdkey <key> -profile <id> [-bots] [-leftprofile <id>]
 //
 // With -bots, a profileId 0 entry (what wic_ds reports for bots once its "no bots in
 // ranked" check is patched out) is sent ahead of the player's entry in the same message.
+// With -leftprofile, an entry for that profile as a player who left without playing (no time
+// played, score 0, a loss) is sent too, like a bot removed when a player joins.
 // Exits 0 if the server is still connected to Massgate after the report.
 
 #include "stdafx.h"
@@ -69,7 +71,7 @@ namespace
 		return !aStopWhenRegistered;
 	}
 
-	MMG_Stats::PlayerMatchStats MakeStats(unsigned int aProfileId, unsigned short aScore, bool aWon)
+	MMG_Stats::PlayerMatchStats MakeStats(unsigned int aProfileId, unsigned short aScore, bool aWon, bool aPlayed = true)
 	{
 		MMG_Stats::PlayerMatchStats stats;
 		stats.profileId = aProfileId;
@@ -77,13 +79,13 @@ namespace
 		stats.scoreAsArmor = aScore;
 		stats.scoreByDamagingEnemies = aScore;
 		stats.timeTotalMatchLength = 20 * 60;
-		stats.timePlayedAsUSA = 20 * 60;
-		stats.timePlayedAsArmor = 20 * 60;
-		stats.totalTimePlayed = 20.0f * 60.0f;
+		stats.timePlayedAsUSA = aPlayed ? 20 * 60 : 0;
+		stats.timePlayedAsArmor = aPlayed ? 20 * 60 : 0;
+		stats.totalTimePlayed = aPlayed ? 20.0f * 60.0f : 0.0f;
 		stats.numberOfUnitsKilled = aScore / 25;
 		stats.matchWon = aWon ? 1 : 0;
 		stats.matchLost = aWon ? 0 : 1;
-		stats.wasPlayingAtMatchEnd = 1;
+		stats.wasPlayingAtMatchEnd = aPlayed ? 1 : 0;
 		return stats;
 	}
 }
@@ -102,10 +104,12 @@ int main(int argc, char* argv[])
 	if (!MC_CommandLine::GetInstance()->GetStringValue("cdkey", cdKey) || !cdKey
 		|| !MC_CommandLine::GetInstance()->GetIntValue("profile", profileId) || profileId <= 0)
 	{
-		puts("usage: FakeDedicatedServer -massgateserver <host> -cdkey <key without dashes> -profile <profileId> [-bots]");
+		puts("usage: FakeDedicatedServer -massgateserver <host> -cdkey <key without dashes> -profile <profileId> [-bots] [-leftprofile <profileId>]");
 		return 2;
 	}
 	const bool withBots = MC_CommandLine::GetInstance()->IsPresent("bots");
+	int leftProfileId = 0;
+	MC_CommandLine::GetInstance()->GetIntValue("leftprofile", leftProfileId);
 
 	MMG_CdKey::Validator validator;
 	validator.SetKey(cdKey);
@@ -151,6 +155,8 @@ int main(int argc, char* argv[])
 	if (withBots)
 		stats.Add(MakeStats(0, 250, false));
 	stats.Add(MakeStats((unsigned int)profileId, 1234, true));
+	if (leftProfileId > 0)
+		stats.Add(MakeStats((unsigned int)leftProfileId, 0, false, false));
 	server->ReportPlayerStats(stats, 0x1234567812345678ULL);
 	printf("reported %d stats entries (%s)\n", stats.Count(), withBots ? "bot first, then player" : "player only");
 

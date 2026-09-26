@@ -62,12 +62,24 @@ if ($PSCmdlet.ShouldProcess($Target, "Install the hook ($Configuration)")) {
 	Write-Host "Installed the hook. wic_ds.exe writes botwar_hook.log in $GameDir."
 }
 
-# Bots are named from the ghost ladder's callsigns. An existing setting is left alone.
+# Bots become ghosts from the roster Massgate writes (start-local.ps1), or at least get their
+# names from the callsign file when there is no roster. Existing settings are left alone.
 $Ini = Join-Path $GameDir 'botwar_hook.ini'
-$Callsigns = (Resolve-Path (Join-Path $RepoRoot 'share/ghosts/callsigns.txt')).Path
-if (-not ((Test-Path $Ini) -and (Select-String -Path $Ini -Pattern '^\s*callsigns\s*=' -Quiet))) {
-	if ($PSCmdlet.ShouldProcess($Ini, 'Name bots from share/ghosts/callsigns.txt')) {
-		Add-Content -Path $Ini -Value "[bots]`r`ncallsigns=$Callsigns" -Encoding ascii
-		Write-Host "Bots will be named from $Callsigns (see $Ini)."
+$BotSettings = [ordered]@{
+	roster    = Join-Path $RepoRoot 'runtime\ghost_roster.txt'
+	callsigns = (Resolve-Path (Join-Path $RepoRoot 'share/ghosts/callsigns.txt')).Path
+}
+$Lines = [Collections.Generic.List[string]]@(if (Test-Path $Ini) { Get-Content $Ini })
+$Missing = @($BotSettings.Keys | Where-Object { -not ($Lines -match "^\s*$_\s*=") })
+if ($Missing -and $PSCmdlet.ShouldProcess($Ini, "Set [bots] $($Missing -join ', ')")) {
+	$Section = $Lines.FindIndex({ param($l) $l.Trim() -ieq '[bots]' })
+	if ($Section -lt 0) {
+		$Lines.Add('[bots]')
+		$Section = $Lines.Count - 1
 	}
+	foreach ($Key in $Missing) {
+		$Lines.Insert($Section + 1, "$Key=$($BotSettings[$Key])")
+		Write-Host "Set [bots] $Key=$($BotSettings[$Key]) in $Ini."
+	}
+	Set-Content -Path $Ini -Value $Lines -Encoding ascii
 }
