@@ -462,6 +462,11 @@ MMS_GhostLadder::PrivCreateMissingGhosts(MDB_MySqlConnection& aConnection, const
 		return false;
 	}
 
+	// Ghosts seeded by earlier versions lack these rows (see PrivCreateGhost).
+	if (!query.Modify(result, "INSERT IGNORE INTO PlayerMedals (profileId) SELECT profileId FROM GhostPlayers")
+		|| !query.Modify(result, "INSERT IGNORE INTO PlayerBadges (profileId) SELECT profileId FROM GhostPlayers"))
+		return false;
+
 	// Ghosts whose callsign left the file stop playing; the rest are (re)activated below.
 	if (!query.Modify(result, "UPDATE GhostPlayers SET isActive=0"))
 		return false;
@@ -554,6 +559,16 @@ MMS_GhostLadder::PrivCreateGhost(MDB_MySqlConnection& aConnection, unsigned int 
 	if (!trans.Execute(result, sql.GetBuffer()))
 		return false;
 	const unsigned int profileId = (unsigned int)trans.GetLastInsertId();
+
+	// Profile creation (MMS_AccountConnectionHandler) also adds these; loading a profile's
+	// stats fails without the medals row, and the game then gets disconnected when it asks
+	// for the profile's medals.
+	sql.Format("INSERT INTO PlayerMedals (profileId) VALUES (%u)", profileId);
+	if (!trans.Execute(result, sql.GetBuffer()))
+		return false;
+	sql.Format("INSERT INTO PlayerBadges (profileId) VALUES (%u)", profileId);
+	if (!trans.Execute(result, sql.GetBuffer()))
+		return false;
 
 	sql.Format("INSERT INTO PlayerStats (profileId, massgateMemberSince, "
 		"sc_tot, sc_highest, sc_inf, sc_highinf, sc_sup, sc_highsup, sc_arm, sc_higharm, sc_air, sc_highair, "
