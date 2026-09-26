@@ -1,6 +1,8 @@
 # massgate-botwar handoff
 
-Last updated: 2026-09-26. Branch: `phase0/modern-build` (not pushed, not merged into `master`).
+Last updated: 2026-09-26. All work is on `master`, pushed to github.com/NBurley93/massgate-botwar
+(**public**: never commit details of the user's own CD key or their email; this repo's
+`user.email` is their GitHub noreply address).
 
 ## Goal
 
@@ -91,7 +93,7 @@ throwaway profile (it needs `Profiles`, `PlayerStats`, `PlayerMedals` and `Playe
 rows), and afterwards delete its rows plus the fake matches: map hash 1311768465173141112
 in `MatchStatsPerPlayer` and `MatchStatsPerRole`.
 
-## What changed in the codebase (commits on the branch)
+## What changed in the codebase (since upstream)
 
 1. **Build**: CMake presets (Win32 / VS2022), `scripts/bootstrap-deps.ps1`, `FindMySQL`
    fixed (`PATH`→`PATHS` typo) and taught MariaDB, DLL copied next to the exe,
@@ -294,4 +296,5 @@ in `MatchStatsPerPlayer` and `MatchStatsPerRole`.
 - Plan before big moves; the user makes the calls on scope.
 - Ask before downloading anything or touching the game install / registry / hosts file.
 - The user runs anything that handles their real CD key.
-- Commit on the feature branch when asked; line endings in `src/` are CRLF.
+- Commit when asked, on a feature branch for bigger work; push only when asked. Line endings
+  in `src/` are CRLF.
